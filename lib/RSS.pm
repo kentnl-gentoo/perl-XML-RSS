@@ -1,4 +1,4 @@
-# $Id: RSS.pm,v 1.10 2003/01/17 21:42:20 comdog Exp $
+# $Id: RSS.pm,v 1.12 2003/01/18 01:21:20 comdog Exp $
 package XML::RSS;
 
 use strict;
@@ -6,7 +6,7 @@ use Carp;
 use XML::Parser;
 use vars qw($VERSION $AUTOLOAD @ISA $modules);
 
-$VERSION = '0.98_02';
+$VERSION = '0.98_03';
 @ISA = qw(XML::Parser);
 
 my %v0_9_ok_fields = (
@@ -120,7 +120,7 @@ my %v2_0_ok_fields = (
         cloud          => '',
         ttl            => '',
         image          => '',
-        textInput      => '',
+        textinput      => '',
         skipHours      => '',
         skipDays       => '',
         },
@@ -359,8 +359,9 @@ my $_REQ_v2_0 = {
 
 my $namespace_map = {
 	rss10	=> 'http://purl.org/rss/1.0/',
-	rss09	=> 'http://my.netscape.com/rdf/simple/0.9/'
-#	rss091	=> 'http://purl.org/rss/1.0/modules/rss091/'
+	rss09	=> 'http://my.netscape.com/rdf/simple/0.9/',
+#	rss091	=> 'http://purl.org/rss/1.0/modules/rss091/',
+	rss20   => 'http://backend.userland.com/blogChannelModule',
 };
 
 my $modules = {
@@ -489,6 +490,7 @@ sub _initialize {
 
     # RSS version 2.0
     } elsif ($self->{version} eq '2.0') {
+    	$self->{namespaces}->{'blogChannel'} = "http://backend.userland.com/blogChannelModule";
         foreach my $i (qw(channel image textinput skipDays skipHours)) {
             my %template=%{ $v2_0_ok_fields{$i} };
             $self->{$i} = \%template;
@@ -1232,14 +1234,14 @@ sub as_rss_2_0 {
     }
 
     #####################
-    # textInput element #
+    # textinput element #
     #####################
-    if ($self->{textInput}->{'link'}) {
+    if ($self->{textinput}->{'link'}) {
         $output .= '<textInput>'."\n";
-        $output .= '<title>'.$self->{textInput}->{title}.'</title>'."\n";
-        $output .= '<description>'.$self->{textInput}->{description}.'</description>'."\n";
-        $output .= '<name>'.$self->{textInput}->{name}.'</name>'."\n";
-        $output .= '<link>'.$self->{textInput}->{'link'}.'</link>'."\n";
+        $output .= '<title>'.$self->{textinput}->{title}.'</title>'."\n";
+        $output .= '<description>'.$self->{textinput}->{description}.'</description>'."\n";
+        $output .= '<name>'.$self->{textinput}->{name}.'</name>'."\n";
+        $output .= '<link>'.$self->{textinput}->{'link'}.'</link>'."\n";
         $output .= '</textInput>'."\n\n";
     }
 
@@ -1305,7 +1307,7 @@ sub handle_char {
 	# removed assumption that RSS is the default namespace - kellan, 11/5/02
 
 	my ($self,$cdata) = (@_);
-
+	
     # image element
     if (
 		$self->within_element("image") ||
@@ -1317,14 +1319,14 @@ sub handle_char {
 			(!$ns && !$self->{rss_namespace}) ||
 			($ns eq $self->{rss_namespace})
 		) {
-	    	$self->{'image'}->{$self->current_element} .= $cdata;
+	    	$self->{'image'}->{$self->current_element} = $cdata;
 		}
 		else {
 	    	# If it's in another namespace
-	    	$self->{'image'}->{$ns}->{$self->current_element} .= $cdata;
+	    	$self->{'image'}->{$ns}->{$self->current_element} = $cdata;
 
 	    	# If it's in a module namespace, provide a friendlier prefix duplicate
-	    	$modules->{$ns} and $self->{'image'}->{$modules->{$ns}}->{$self->current_element} .= $cdata;
+	    	$modules->{$ns} and $self->{'image'}->{$modules->{$ns}}->{$self->current_element} = $cdata;
 		}
 
 	# item element
@@ -1342,14 +1344,14 @@ sub handle_char {
 			(!$ns && !$self->{rss_namespace}) ||
 			($ns eq $self->{rss_namespace})
 		) {
-	    	$self->{'items'}->[$self->{num_items}-1]->{$self->current_element} .= $cdata;
+	    	$self->{'items'}->[$self->{num_items}-1]->{$self->current_element} = $cdata;
 		} else {
 	    	# If it's in another namespace
-	    	$self->{'items'}->[$self->{num_items}-1]->{$ns}->{$self->current_element} .= $cdata;
+	    	$self->{'items'}->[$self->{num_items}-1]->{$ns}->{$self->current_element} = $cdata;
 
 	    	# If it's in a module namespace, provide a friendlier prefix duplicate
 	    	$modules->{$ns} and
-				$self->{'items'}->[$self->{num_items}-1]->{$modules->{$ns}}->{$self->current_element} .= $cdata;
+				$self->{'items'}->[$self->{num_items}-1]->{$modules->{$ns}}->{$self->current_element} = $cdata;
 		}
 
 	# textinput element
@@ -1364,14 +1366,14 @@ sub handle_char {
 			(!$ns && !$self->{rss_namespace}) ||
 			($ns eq $self->{rss_namespace})
 		) {
-	    	$self->{'textinput'}->{$self->current_element} .= $cdata;
+	    	$self->{'textinput'}->{$self->current_element} = $cdata;
 		}
 		else {
 	    	# If it's in another namespace
-	    	$self->{'textinput'}->{$ns}->{$self->current_element} .= $cdata;
+	    	$self->{'textinput'}->{$ns}->{$self->current_element} = $cdata;
 
 	    	# If it's in a module namespace, provide a friendlier prefix duplicate
-	    	$modules->{$ns} and $self->{'textinput'}->{$modules->{$ns}}->{$self->current_element} .= $cdata;
+	    	$modules->{$ns} and $self->{'textinput'}->{$modules->{$ns}}->{$self->current_element} = $cdata;
 		}
 
 	# skipHours element
@@ -1379,14 +1381,14 @@ sub handle_char {
 	     $self->within_element("skipHours") ||
 	     $self->within_element($self->generate_ns_name("skipHours",$self->{rss_namespace}))
 	) {
-		$self->{'skipHours'}->{$self->current_element} .= $cdata;
+		$self->{'skipHours'}->{$self->current_element} = $cdata;
 
 		# skipDays element
     } elsif (
 	     $self->within_element("skipDays") ||
 		$self->within_element($self->generate_ns_name("skipDays",$self->{rss_namespace}))
 	) {
-		$self->{'skipDays'}->{$self->current_element} .= $cdata;
+		$self->{'skipDays'}->{$self->current_element} = $cdata;
 
 	# channel element
     } elsif (
@@ -1402,13 +1404,13 @@ sub handle_char {
 			(!$ns && !$self->{rss_namespace}) ||
 			($ns eq $self->{rss_namespace})
 		) {
-	    	$self->{'channel'}->{$self->current_element} .= $cdata;
+	    	$self->{'channel'}->{$self->current_element} = $cdata;
 		} else {
 	    	# If it's in another namespace
-	    	$self->{'channel'}->{$ns}->{$self->current_element} .= $cdata;
+	    	$self->{'channel'}->{$ns}->{$self->current_element} = $cdata;
 
 	    	# If it's in a module namespace, provide a friendlier prefix duplicate
-	    	$modules->{$ns} and $self->{'channel'}->{$modules->{$ns}}->{$self->current_element} .= $cdata;
+	    	$modules->{$ns} and $self->{'channel'}->{$modules->{$ns}}->{$self->current_element} = $cdata;
 		}
     }
 }
@@ -1423,7 +1425,7 @@ sub handle_start {
     my $self = shift;
     my $el   = shift;
     my %attribs = @_;
-
+	
 	# beginning of RSS 0.91
     if ($el eq 'rss') {
 		if (exists($attribs{version})) {

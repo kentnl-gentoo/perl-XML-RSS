@@ -1,5 +1,20 @@
-# $Id: Changes,v 1.2 2002/11/12 11:55:50 comdog Exp $
+# $Id: Changes,v 1.4 2003/01/18 01:18:52 comdog Exp $
 Revision history for Perl extension XML::RSS.
+
+0.98_02 - Fri Jan 17 19:15:45 2003
+	* changed the handle_char() routine to replace data rather than
+	append to existing data.  this takes care of the doubling problem
+	in the last issue.
+
+	* set the RSS 2.0 namespace in the _initializer routine
+
+	* all tests now pass.  if this works for people, it could turn into
+	a release candidate
+
+0.98_02 - Fri Jan 17 15:47:29 2003
+	* added initial RSS 2.0 support
+	* first fix to properly encode special characters in output
+	* need to fix feature to add namespace (tests are TO DO)
 
 0.1  Wed Jul  7 16:22:25 1999
 	- original version; created by h2xs 1.19
