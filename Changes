@@ -16,5 +16,8 @@ Revision history for Perl extension XML::RSS.
       a Web site. Also added ability to give local
       filename or http URL.
 0.6 - numerous minor bug fixes
-	- it no longer checks for size as specified by Netscape's RSS spec
+    - it no longer checks for size as specified by Netscape's RSS spec
       unless otherwise specified
+0.7 Wed Oct 20 22:41:05 EDT 1999
+    -parameters were not getting set unless the strict parameter was set 
+    -fixed spelling for managingEditor and webMaster

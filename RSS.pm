@@ -10,7 +10,7 @@ use Carp;
 use XML::Parser;
 use vars qw($VERSION $AUTOLOAD @ISA);
 
-$VERSION = '0.05';
+$VERSION = '0.7';
 @ISA = qw(XML::Parser);
 
 my %v0_9_ok_fields = (
@@ -73,8 +73,8 @@ my %v0_9_1_ok_fields = (
     items           => [],
     num_items       => 0,
     version         => '',
-    encoding        => ''
-		     
+    encoding        => '',
+    category        => ''
 );
 
 my %languages = (
@@ -387,11 +387,11 @@ sub as_string {
 
 	# managing editor
 	$output .= '<managingEditor>'.$self->{channel}->{managingEditor}.'</managingEditor>'."\n"
-	    if $self->{channel}->{mnagingEditor};
+	    if $self->{channel}->{managingEditor};
 
 	# webmaster
-	$output .= '<webmaster>'.$self->{channel}->{webmaster}.'</webmaster>'."\n"
-	    if $self->{channel}->{webmaster};
+	$output .= '<webMaster>'.$self->{channel}->{webMaster}.'</webMaster>'."\n"
+	    if $self->{channel}->{webMaster};
 
 	$output .= "\n";
 
@@ -597,22 +597,25 @@ sub AUTOLOAD {
     # we're going to set values here
     } elsif (@_ > 1) {
 	my %hash = @_;
-	
+	my $_REQ;
+
 	# make sure we have required elements and correct lengths
 	if ($self->{'strict'}) {
-	    my $_REQ;
 	    ($self->{version} eq '0.9')
 		? ($_REQ = $_REQ_v0_9)
 		    : ($_REQ = $_REQ_v0_9_1);
+	}
 	    
-	    # store data in object
-	    foreach my $key (keys(%hash)) {
+	# store data in object
+	foreach my $key (keys(%hash)) {
+	    if ($self->{'strict'}) {
 		my $req_element = $_REQ->{$name}->{$key};
 		confess "$key cannot exceed " . $req_element->[1] . " characters in length"
 		    if defined $req_element->[1] && length($hash{$key}) > $req_element->[1];
-		$self->{$name}->{$key} = $hash{$key};
 	    }
+	    $self->{$name}->{$key} = $hash{$key};
 	}
+       
 	# return value
 	return $self->{$name};
 	
