@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.3 2002/11/12 12:04:17 comdog Exp $
+# $Id: Makefile.PL,v 1.4 2003/01/17 20:52:47 comdog Exp $
 use ExtUtils::MakeMaker;
 @extras = ();
 
@@ -38,6 +38,6 @@ WriteMakefile(
 	'MAN3PODS'		       => {
 		'lib/RSS.pm'    => '$(INST_MAN3DIR)/XML::RSS.3',
 		},
-	'clean'			       => { FILES => 'XML-RSS-*' },
+	'clean'			       => { FILES => 'XML-RSS-* t/*-generated.xml' },
     @extras
 );
