@@ -21,3 +21,6 @@ Revision history for Perl extension XML::RSS.
 0.7 Wed Oct 20 22:41:05 EDT 1999
     -parameters were not getting set unless the strict parameter was set 
     -fixed spelling for managingEditor and webMaster
+0.8 Mon Dec 27 03:42:27 EST 1999
+    -fixed shallow copy problem when working with multiple instances
+

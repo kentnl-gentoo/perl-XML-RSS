@@ -3,7 +3,7 @@ This package is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
 
 NAME
-XML::RSS Version 0.7
+XML::RSS Version 0.8
 
 DESCRIPTION
 This module was created to help those who need to manage
@@ -47,4 +47,6 @@ CREDITS
 Wojciech Zwiefka <wojtekz@cnt.pl>
 Chris Nandor <pudge@pobox.com>
 Jim Hebert <jim@cosource.com>
+Randal Schwartz <merlyn@stonehenge.com>
+rjp@browser.org
 

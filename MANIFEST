@@ -7,6 +7,7 @@ test.pl
 examples/create_rss.pl
 examples/create_rss_0.91.pl
 examples/create_rss_0.91_full.pl
+examples/create_rss_multiple.pl
 examples/update_rss.pl
 examples/fm.rdf
 examples/fm0.91.rdf

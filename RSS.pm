@@ -10,7 +10,7 @@ use Carp;
 use XML::Parser;
 use vars qw($VERSION $AUTOLOAD @ISA);
 
-$VERSION = '0.7';
+$VERSION = '0.8';
 @ISA = qw(XML::Parser);
 
 my %v0_9_ok_fields = (
@@ -275,16 +275,19 @@ sub _initialize {
     # initialize RSS data structure
     # RSS version 0.9
     if ($self->{version} eq '0.9') {
-	$self->{channel}   = $v0_9_ok_fields{'channel'};
-	$self->{image}     = $v0_9_ok_fields{'image'};
-	$self->{textinput} = $v0_9_ok_fields{'textinput'};
+	# Copy the hashes instead of using them directly to avoid
+        # problems with multiple XML::RSS objects being used concurrently
+        foreach my $i (qw(channel image textinput)) {
+	    my %template=%{$v0_9_ok_fields{$i}};
+	    $self->{$i} = \%template;
+        }
+
     # RSS version 0.91
     } else {
-	$self->{channel}   = $v0_9_1_ok_fields{'channel'};
-	$self->{image}     = $v0_9_1_ok_fields{'image'};
-	$self->{textinput} = $v0_9_1_ok_fields{'textinput'};
-	$self->{skipDays}  = $v0_9_1_ok_fields{'skipDays'};
-	$self->{skipHours} = $v0_9_1_ok_fields{'skipHours'};
+	foreach my $i (qw(channel image textinput skipDays skipHours)) {
+	    my %template=%{$v0_9_1_ok_fields{$i}};
+	    $self->{$i} = \%template;
+        }
     }
 }
 
@@ -847,10 +850,11 @@ Jonathan Eisenzopf <eisen@pobox.com>
 
 =head1 CREDITS
 
-Wojciech Zwiefka <wojtekz@cnt.pl>
-Chris Nandor <pudge@pobox.com>
-Jim Hebert <jim@cosource.com>
-
+ Wojciech Zwiefka <wojtekz@cnt.pl>
+ Chris Nandor <pudge@pobox.com>
+ Jim Hebert <jim@cosource.com>
+ Randal Schwartz <merlyn@stonehenge.com>
+ rjp@browser.org
 
 =head1 SEE ALSO
 
