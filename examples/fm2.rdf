@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<rdf:RDF
+xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+xmlns="http://my.netscape.com/rdf/simple/0.9/">
+
+<channel>
+<title>freshmeat.net</title>
+<link>http://freshmeat.net</link>
+<description>the one-stop-shop for all your Linux software needs</description>
+</channel>
+
+<image>
+<title>freshmeat.net</title>
+<url>http://freshmeat.net/images/fm.mini.jpg</url>
+<link>http://freshmeat.net</link>
+</image>
+
+<item>
+<title>MpegTV Player (mtv) 1.0.9.7</title>
+<link>http://freshmeat.net/news/1999/06/21/930003958.html</link>
+</item>
+
+<item>
+<title>GTKeyboard 0.85</title>
+<link>http://freshmeat.net/news/1999/06/21/930003829.html</link>
+</item>
+
+<item>
+<title>Spruce 0.4.7b</title>
+<link>http://freshmeat.net/news/1999/06/21/930003816.html</link>
+</item>
+
+<textinput>
+<title>quick finder</title>
+<description>Use the text input below to search freshmeat</description>
+<name>query</name>
+<link>http://core.freshmeat.net/search.php3</link>
+</textinput>
+
+</rdf:RDF>

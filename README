@@ -1,0 +1,43 @@
+Copyright (c) 1998 Jonathan Eisenzopf. All rights reserved.
+This package is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+
+NAME
+XML::RSS Version 0.1
+
+DESCRIPTION
+This module was created to help those who need to manage
+RDF Site Summary (RSS) files. It makes quick work of
+creating, updating, and saving RSS files. It adheres to
+the specification as it appears at:
+http://my.netscape.com/publish/help/quickstart.html
+which is actually quite useless since the site doesn't provide
+a link to grab the official RDF schema. 
+
+Furthermore, unless someone can prove me wrong, RSS is not
+really XML, even though the above URL leads you to this
+conclusion. I say this for 3 reasons:
+1. The site states that RSS doesn't support UTF-8, a requirement
+for well-formed XML.
+2. The spec allows any of the HTML entities, but I haven't found
+and external or internal entity declarations. So, if you put them
+in, XML::Parser will croak.
+3. It doesn't allow CDATA sections.
+
+So, if you want to use this module, you must not use any HTML
+entities. If you have some ideas on how to get around this,
+please let me know.
+
+Feel free to contact me at eisen@pobox.com if you have 
+problems and/or suggestions.
+
+REQUIREMENTS
+This module requires version 2.23 or greater of the XML::Parser module.
+The latest version is available at any CPAN archive.
+
+INSTALLATION
+perl Makefile.PL
+make
+make install
+
+CREDITS

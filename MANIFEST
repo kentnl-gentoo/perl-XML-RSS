@@ -1,0 +1,10 @@
+Changes
+MANIFEST
+Makefile.PL
+RSS.pm
+test.pl
+examples/create_rss.pl
+examples/update_rss.pl
+examples/fm.rdf
+examples/fm2.rdf
+
