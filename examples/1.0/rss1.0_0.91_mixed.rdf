@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:rss091="http://purl.org/rss/1.0/modules#rss091"
+>
+
+<channel rdf:about="http://meerkat.oreillynet.com">
+<title>Meerkat</title>
+<link>http://meerkat.oreillynet.com</link>
+<description>Meerkat: An Open Wire Service</description>
+<rss091:language>en-us</rss091:language>
+<rss091:rating>(PICS-1.1 "http://www.rsac.org/ratingsv01.html"
+            l gen true comment "RSACi North America Server" 
+            for "http://www.rsac.org" on "1996.04.16T08:15-0500" 
+            r (n 0 s 0 v 0 l 0))</rss091:rating>
+<rss091:pubDate>2000-01-01T12:00+00:00</rss091:pubDate>
+<rss091:lastBuildDate>2000-01-01T12:00+00:00</rss091:lastBuildDate>
+<rss091:managingEditor>Edd Dumbill</rss091:managingEditor>
+</channel>
+
+<image rdf:about="http://meerkat.oreillynet.com/icons/meerkat-powered.jpg">
+<inchannel rdf:resource="http://meerkat.oreillynet.com" />
+<title>Meerkat Powered!</title>
+<url>http://meerkat.oreillynet.com/icons/meerkat-powered.jpg</url>
+<link>http://meerkat.oreillynet.com</link>
+<rss091:width>88</rss091:width>
+<rss091:height>31</rss091:height>
+<rss091:description>Meerkat is...</rss091:description>
+</image>
+
+<item rdf:about="http://c.moreover.com/click/here.pl?r123" position="1">
+<inchannel rdf:resource="http://meerkat.oreillynet.com" />
+<title>XML: A Disruptive Technology</title>
+<link>http://c.moreover.com/click/here.pl?r123</link>
+<description>
+             XML is placing increasingly heavy loads on the existing technical
+             infrastructure of the Internet.
+           </description>
+</item>
+
+<textinput rdf:about="http://search.xml.com">
+<inchannel rdf:resource="http://meerkat.oreillynet.com" />
+<title>Search XML.com</title>
+<description>Search XML.com's XML collection</description>
+<name>s</name>
+<link>http://search.xml.com</link>
+</textinput>
+
+</rdf:RDF>

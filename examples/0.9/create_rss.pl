@@ -31,4 +31,3 @@ $rss->textinput(title => "quick finder",
 		);
 
 print $rss->as_string;
-#$rss->save("fm.rdf");

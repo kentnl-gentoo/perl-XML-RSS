@@ -23,4 +23,6 @@ Revision history for Perl extension XML::RSS.
     -fixed spelling for managingEditor and webMaster
 0.8 Mon Dec 27 03:42:27 EST 1999
     -fixed shallow copy problem when working with multiple instances
-
+0.9 Mon Aug 14 17:05:00 EDT 2000
+	-fixed DESTROY() error when using Perl 5.6
+	-added support for RSS 1.0 and rss091 namespace

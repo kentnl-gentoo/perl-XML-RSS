@@ -1,0 +1,4 @@
+-add support for imported namespaces
+-create parse tree to handle foreign namespaces
+-add modules support for RSS 1.0
+-fix skipHour and skipDay methods

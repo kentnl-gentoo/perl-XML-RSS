@@ -1,0 +1,4 @@
+-there is no strict mode for RSS 1.0
+-ignores foreign namespaces other than rss091
+-skipHours and skipDays doesn't work properly
+

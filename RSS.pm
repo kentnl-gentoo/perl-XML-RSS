@@ -1,5 +1,5 @@
 # 
-# Copyright (c) 1999 Jonathan Eisenzopf <eisen@pobox.com>
+# Copyright (c) 2000 Jonathan Eisenzopf <eisen@pobox.com>
 # XML::RSS is free software. You can redistribute it and/or
 # modify it under the same terms as Perl itself.
 
@@ -10,7 +10,7 @@ use Carp;
 use XML::Parser;
 use vars qw($VERSION $AUTOLOAD @ISA);
 
-$VERSION = '0.8';
+$VERSION = '0.9';
 @ISA = qw(XML::Parser);
 
 my %v0_9_ok_fields = (
@@ -75,6 +75,37 @@ my %v0_9_1_ok_fields = (
     version         => '',
     encoding        => '',
     category        => ''
+);
+
+my %v1_0_ok_fields = (
+    channel => { 
+	title       => '',
+	description => '',
+	link        => '',
+	},
+    image  => { 
+	title => '',
+	url   => '',
+	link  => '' 
+	},
+    textinput => { 
+	title       => '',
+	description => '',
+	name        => '',
+	link        => ''
+	},
+    skipDays  => {
+	day         => ''
+	},
+    skipHours => {
+	hour        => ''
+	},
+    items => [],
+    num_items => 0,
+    version         => '',
+    encoding        => '',
+    positioning     => 1,
+    output          => '',
 );
 
 my %languages = (
@@ -239,11 +270,19 @@ my $_REQ_v0_9_1 = {
 	}
 };
 
+# RDF module support
+my $modules = {
+    rss091 => 'http://purl.org/rss/1.0/modules#rss091'
+};
+
 sub new {
     my $class = shift;
-    my $self = $class->SUPER::new(Handlers => { Char    => \&handle_char,
-					        XMLDecl => \&handle_dec,
-					        Start   => \&handle_start});
+    my $self = $class->SUPER::new(Namespaces    => 1,
+				  NoExpand      => 1,
+				  ParseParamEnt => 0,
+				  Handlers      => { Char    => \&handle_char,
+					             XMLDecl => \&handle_dec,
+					             Start   => \&handle_start});
     bless ($self,$class);
     $self->_initialize(@_);
     return $self;
@@ -252,6 +291,9 @@ sub new {
 sub _initialize {
     my $self = shift;
     my %hash = @_;
+
+    # internal hash
+    $self->{_internal} = {};
 
     # init num of items to 0
     $self->{num_items} = 0;
@@ -262,10 +304,23 @@ sub _initialize {
     # initialize items
     $self->{items} = [];
 
+    # namespaces
+    $self->{namespaces} = {};
+
     #get version info
     (exists($hash{version}))
 	? ($self->{version} = $hash{version})
-	    : ($self->{version} = '0.91');
+	    : ($self->{version} = '1.0');
+
+    # set default output
+    (exists($hash{output}))
+	? ($self->{output} = $hash{output})
+	    : ($self->{output} = "");
+
+    # turn on positioning for RSS 1.0
+    (exists($hash{positioning}))
+	? ($self->{positioning} = $hash{positioning})
+	    : ($self->{positioning} = 1);
 
     # encoding
     (exists($hash{encoding})) 
@@ -283,9 +338,18 @@ sub _initialize {
         }
 
     # RSS version 0.91
-    } else {
+    } elsif ($self->{version} eq '0.91') {
 	foreach my $i (qw(channel image textinput skipDays skipHours)) {
 	    my %template=%{$v0_9_1_ok_fields{$i}};
+	    $self->{$i} = \%template;
+        }
+
+    # RSS version 1.0
+    #} elsif ($self->{version} eq '1.0') {
+    } else {
+	foreach my $i (qw(channel image textinput)) {
+	#foreach my $i (keys(%v1_0_ok_fields)) {
+	    my %template=%{$v1_0_ok_fields{$i}};
 	    $self->{$i} = \%template;
         }
     }
@@ -325,36 +389,17 @@ sub add_item {
     return $self->{items};
 }
 
-sub as_string {
+sub as_rss_0_9 {
     my $self = shift;
     my $output;
 
-    ##########################
-    # output RSS 0.9 headers #
-    ##########################
-    if ($self->{version} eq '0.9') {
-	# XML declaration
-	$output .= '<?xml version="1.0"?>'."\n";
-
-	# RDF root element
-	$output .= '<rdf:RDF'."\n".'xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"'."\n";
-	$output .= 'xmlns="http://my.netscape.com/rdf/simple/0.9/">'."\n\n";
-	
-    ###########################
-    # output RSS 0.91 headers #
-    ###########################
-    } else {
-	# XML declaration
-	$output .= '<?xml version="1.0" encoding="'.$self->{encoding}.'"?>'."\n\n";
-
-	# DOCTYPE
-	$output .= '<!DOCTYPE rss PUBLIC "-//Netscape Communications//DTD RSS 0.91//EN"'."\n";
-	$output .= '            "http://my.netscape.com/publish/formats/rss-0.91.dtd">'."\n\n"; 
-	
-	# RSS root element 
-	$output .= '<rss version="0.91">'."\n\n";
-    }
-
+    # XML declaration
+    $output .= '<?xml version="1.0"?>'."\n\n";
+    
+    # RDF root element
+    $output .= '<rdf:RDF'."\n".'xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"'."\n";
+    $output .= 'xmlns="http://my.netscape.com/rdf/simple/0.9/">'."\n\n";
+    
     ###################
     # Channel Element #
     ###################
@@ -362,83 +407,28 @@ sub as_string {
     $output .= '<title>'.$self->{channel}->{title}.'</title>'."\n";
     $output .= '<link>'.$self->{channel}->{'link'}.'</link>'."\n";
     $output .= '<description>'.$self->{channel}->{description}.'</description>'."\n";
-
-    # additional elements for RSS 0.91
-    if ($self->{version} eq '0.91') {
-	# language
-	$output .= '<language>'.$self->{channel}->{language}.'</language>'."\n";
-
-	# PICS rating
-	$output .= '<rating>'.$self->{channel}->{rating}.'</rating>'."\n"
-	    if $self->{channel}->{rating};
-
-	# copyright
-	$output .= '<copyright>'.$self->{channel}->{copyright}.'</copyright>'."\n"
-	    if $self->{channel}->{copyright};
-
-	# publication date
-	$output .= '<pubDate>'.$self->{channel}->{pubDate}.'</pubDate>'."\n"
-	    if $self->{channel}->{pubDate};
-
-	# last build date
-	$output .= '<lastBuildDate>'.$self->{channel}->{lastBuildDate}.'</lastBuildDate>'."\n"
-	    if $self->{channel}->{lastBuildDate};
-
-	# external CDF URL
-	$output .= '<docs>'.$self->{channel}->{docs}.'</docs>'."\n"
-	    if $self->{channel}->{docs};
-
-	# managing editor
-	$output .= '<managingEditor>'.$self->{channel}->{managingEditor}.'</managingEditor>'."\n"
-	    if $self->{channel}->{managingEditor};
-
-	# webmaster
-	$output .= '<webMaster>'.$self->{channel}->{webMaster}.'</webMaster>'."\n"
-	    if $self->{channel}->{webMaster};
-
-	$output .= "\n";
-
-    # end channel for RSS 0.9
-    } else {
-	# end channel element
-	$output .= '</channel>'."\n\n";
-    }
-
+    $output .= '</channel>'."\n\n";
+    
     #################
     # image element #
     #################
     if ($self->{image}->{url}) {
 	$output .= '<image>'."\n";
-
+	
 	# title
 	$output .= '<title>'.$self->{image}->{title}.'</title>'."\n";
-
+	
 	# url
 	$output .= '<url>'.$self->{image}->{url}.'</url>'."\n";
-
+	
 	# link
 	$output .= '<link>'.$self->{image}->{'link'}.'</link>'."\n"
 	    if $self->{image}->{link};
-
-	# additional elements for RSS 0.91
-	if ($self->{version} eq '0.91') {
-	    # image width
-	    $output .= '<width>'.$self->{image}->{width}.'</width>'."\n"
-	    if $self->{image}->{width};
-
-	    # image height
-	    $output .= '<height>'.$self->{image}->{height}.'</height>'."\n"
-	    if $self->{image}->{height};
-
-	    # description
-	    $output .= '<description>'.$self->{image}->{description}.'</description>'."\n"
-	    if $self->{image}->{description};
-	}
 	
 	# end image element
 	$output .= '</image>'."\n\n";
     }
-
+    
     ################
     # item element #
     ################
@@ -447,18 +437,12 @@ sub as_string {
 	    $output .= '<item>'."\n";
 	    $output .= '<title>'.$item->{title}.'</title>'."\n";
 	    $output .= '<link>'.$item->{'link'}.'</link>'."\n";
-
-	    # additional elements for RSS 0.91
-	    if ($self->{version} eq '0.91') {
-		$output .= '<description>'.$item->{description}.'</description>'."\n"
-		    if $item->{description};
-	    }
-
+	    
 	    # end image element
 	    $output .= '</item>'."\n\n";
 	}
     }
-
+    
     #####################
     # textinput element #
     #####################
@@ -470,7 +454,128 @@ sub as_string {
 	$output .= '<link>'.$self->{textinput}->{'link'}.'</link>'."\n";
 	$output .= '</textinput>'."\n\n";
     }
+ 
+    $output .= '</rdf:RDF>';
+    
+    return $output;
+}
 
+sub as_rss_0_9_1 {
+    my $self = shift;
+    my $output;
+
+    # XML declaration
+    $output .= '<?xml version="1.0" encoding="'.$self->{encoding}.'"?>'."\n\n";
+    
+    # DOCTYPE
+    $output .= '<!DOCTYPE rss PUBLIC "-//Netscape Communications//DTD RSS 0.91//EN"'."\n";
+    $output .= '            "http://my.netscape.com/publish/formats/rss-0.91.dtd">'."\n\n"; 
+    
+    # RSS root element 
+    $output .= '<rss version="0.91">'."\n\n";
+    
+    ###################
+    # Channel Element #
+    ###################
+    $output .= '<channel>'."\n";
+    $output .= '<title>'.$self->{channel}->{title}.'</title>'."\n";
+    $output .= '<link>'.$self->{channel}->{'link'}.'</link>'."\n";
+    $output .= '<description>'.$self->{channel}->{description}.'</description>'."\n";
+    
+    # language
+    $output .= '<language>'.$self->{channel}->{language}.'</language>'."\n";
+	
+    # PICS rating
+    $output .= '<rating>'.$self->{channel}->{rating}.'</rating>'."\n"
+	if $self->{channel}->{rating};
+	
+    # copyright
+    $output .= '<copyright>'.$self->{channel}->{copyright}.'</copyright>'."\n"
+	if $self->{channel}->{copyright};
+	
+    # publication date
+    $output .= '<pubDate>'.$self->{channel}->{pubDate}.'</pubDate>'."\n"
+	if $self->{channel}->{pubDate};
+	    
+    # last build date
+    $output .= '<lastBuildDate>'.$self->{channel}->{lastBuildDate}.'</lastBuildDate>'."\n"
+	if $self->{channel}->{lastBuildDate};
+	    
+    # external CDF URL
+    $output .= '<docs>'.$self->{channel}->{docs}.'</docs>'."\n"
+	if $self->{channel}->{docs};
+	
+    # managing editor
+    $output .= '<managingEditor>'.$self->{channel}->{managingEditor}.'</managingEditor>'."\n"
+	if $self->{channel}->{managingEditor};
+	
+    # webmaster
+    $output .= '<webMaster>'.$self->{channel}->{webMaster}.'</webMaster>'."\n"
+	if $self->{channel}->{webMaster};
+	
+    $output .= "\n";
+	
+    #################
+    # image element #
+    #################
+    if ($self->{image}->{url}) {
+	$output .= '<image>'."\n";
+	
+	# title
+	$output .= '<title>'.$self->{image}->{title}.'</title>'."\n";
+	
+	# url
+	$output .= '<url>'.$self->{image}->{url}.'</url>'."\n";
+	
+	# link
+	$output .= '<link>'.$self->{image}->{'link'}.'</link>'."\n"
+	    if $self->{image}->{link};
+	
+	# image width
+	$output .= '<width>'.$self->{image}->{width}.'</width>'."\n"
+	    if $self->{image}->{width};
+	    
+	# image height
+	$output .= '<height>'.$self->{image}->{height}.'</height>'."\n"
+	    if $self->{image}->{height};
+	    
+	# description
+	$output .= '<description>'.$self->{image}->{description}.'</description>'."\n"
+	    if $self->{image}->{description};
+	
+	# end image element
+	$output .= '</image>'."\n\n";
+    }
+    
+    ################
+    # item element #
+    ################
+    foreach my $item (@{$self->{items}}) {
+	if ($item->{title}) {
+	    $output .= '<item>'."\n";
+	    $output .= '<title>'.$item->{title}.'</title>'."\n";
+	    $output .= '<link>'.$item->{'link'}.'</link>'."\n";
+	    
+	    $output .= '<description>'.$item->{description}.'</description>'."\n"
+		if $item->{description};
+	    
+	    # end image element
+	    $output .= '</item>'."\n\n";
+	}
+    }
+    
+    #####################
+    # textinput element #
+    #####################
+    if ($self->{textinput}->{'link'}) {
+	$output .= '<textinput>'."\n";
+	$output .= '<title>'.$self->{textinput}->{title}.'</title>'."\n";
+	$output .= '<description>'.$self->{textinput}->{description}.'</description>'."\n";
+	$output .= '<name>'.$self->{textinput}->{name}.'</name>'."\n";
+	$output .= '<link>'.$self->{textinput}->{'link'}.'</link>'."\n";
+	$output .= '</textinput>'."\n\n";
+    }
+    
     #####################
     # skipHours element #
     #####################
@@ -479,7 +584,7 @@ sub as_string {
 	$output .= '<hour>'.$self->{skipHours}->{hour}.'</hour>'."\n";
 	$output .= '</skipHours>'."\n\n";
     }
-
+    
     ####################
     # skipDays element #
     ####################
@@ -488,18 +593,212 @@ sub as_string {
 	$output .= '<day>'.$self->{skipDays}->{day}.'</day>'."\n";
 	$output .= '</skipDays>'."\n\n";
     }
+    
+    # end channel element
+    $output .= '</channel>'."\n";
+    $output .= '</rss>';
 
-    ##############
-    # end of RSS #
-    ##############
-    # RSS 0.9
-    if ($self->{version} eq '0.9') {
-	$output .= '</rdf:RDF>';
-    # RSS 0.91
+    return $output;
+}
+
+sub as_rss_1_0 {
+    my $self = shift;
+    my $output;
+
+    # XML declaration
+    $output .= '<?xml version="1.0" encoding="'.$self->{encoding}.'"?>'."\n\n";
+    
+    # RDF namespaces declaration
+    $output .="<rdf:RDF"."\n"; 
+    $output .=' xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"'."\n"; 
+    $output .=' xmlns="http://purl.org/rss/1.0/"'."\n";
+
+    # print all imported namespaces
+    #foreach my $namespace (keys(%{$self->{namespaces}})) {
+	#$output.=" xmlns:$namespace=\"$self->{namespaces}->{$namespace}\""."\n";
+    #}
+
+    # import the rss091 namespace if we have any 0.91 elements
+    $output.=" xmlns:rss091=\"$modules->{rss091}\""."\n"
+	if ( $self->{channel}->{language}
+	     || $self->{channel}->{rating}
+	     || $self->{channel}->{copyright}
+	     || $self->{channel}->{pubDate}
+	     || $self->{channel}->{lastBuildDate}
+	     || $self->{channel}->{docs}
+	     || $self->{channel}->{managingEditor}
+	     || $self->{channel}->{webMaster}
+	     || $self->{image}->{width}
+	     || $self->{image}->{height}
+	     || $self->{image}->{description}
+	     || $self->{skipHours}
+	     || $self->{skipDays}
+	     );
+
+    $output .=">"."\n\n";
+			      
+    ###################
+    # Channel Element #
+    ###################
+    $output .= '<channel rdf:about="'.$self->{channel}->{'link'}.'">'."\n";
+
+    # inchannel
+    $self->{channel}->{'inchannel'} = ($self->{channel}->{'inchannel'} || $self->{channel}->{'link'});
+    #$output .= '<inchannel rdf:resource="'.$self->{channel}->{'inchannel'}.'" />'."\n";
+    
+    # title
+    $output .= '<title>'.$self->{channel}->{title}.'</title>'."\n";
+    
+    # link
+    $output .= '<link>'.$self->{channel}->{'link'}.'</link>'."\n";
+
+    # description
+    $output .= '<description>'.$self->{channel}->{description}.'</description>'."\n";
+    
+    # additional elements for RSS 0.91
+    # language
+    $output .= '<rss091:language>'.$self->{channel}->{language}.'</rss091:language>'."\n"
+	if $self->{channel}->{language};
+    
+    # PICS rating
+    $output .= '<rss091:rating>'.$self->{channel}->{rating}.'</rss091:rating>'."\n"
+	if $self->{channel}->{rating};
+	
+    # copyright
+    $output .= '<rss091:copyright>'.$self->{channel}->{copyright}.'</rss091:copyright>'."\n"
+	if $self->{channel}->{copyright};
+	
+    # publication date
+    $output .= '<rss091:pubDate>'.$self->{channel}->{pubDate}.'</rss091:pubDate>'."\n"
+	if $self->{channel}->{pubDate};
+	
+    # last build date
+    $output .= '<rss091:lastBuildDate>'.$self->{channel}->{lastBuildDate}.'</rss091:lastBuildDate>'."\n"
+	if $self->{channel}->{lastBuildDate};
+	
+    # external CDF URL
+    $output .= '<rss091:docs>'.$self->{channel}->{docs}.'</rss091:docs>'."\n"
+	if $self->{channel}->{docs};
+	
+    # managing editor
+    $output .= '<rss091:managingEditor>'.$self->{channel}->{managingEditor}.'</rss091:managingEditor>'."\n"
+	if $self->{channel}->{managingEditor};
+	
+    # webmaster
+    $output .= '<rss091:webMaster>'.$self->{channel}->{webMaster}.'</rss091:webMaster>'."\n"
+	if $self->{channel}->{webMaster};
+
+    # skipHours
+    if ($self->{skipHours}->{hour}) {
+	$output .= '<rss091:skipHours>'."\n";
+	$output .= '<rss091:hour>'.$self->{skipHours}->{hour}.'</rss091:hour>'."\n";
+	$output .= '</rss091:skipHours>'."\n\n";
+    }
+    
+    # skipDays
+    if ($self->{skipDays}->{day}) {
+	$output .= '<rss091:skipDays>'."\n";
+	$output .= '<rss091:day>'.$self->{skipDays}->{day}.'</rss091:day>'."\n";
+	$output .= '</rss091:skipDays>'."\n\n";
+    }
+	
+    # end channel element
+    $output .= '</channel>'."\n\n";
+    
+    #################
+    # image element #
+    #################
+    if ($self->{image}->{url}) {
+	$output .= '<image rdf:about="'.$self->{image}->{url}.'">'."\n";
+	
+	# inchannel
+	$output .= '<inchannel rdf:resource="'.($self->{image}->{inchannel} || $self->{channel}->{inchannel}).'" />'."\n";
+
+	# title
+	$output .= '<title>'.$self->{image}->{title}.'</title>'."\n";
+	
+	# url
+	$output .= '<url>'.$self->{image}->{url}.'</url>'."\n";
+	
+	# link
+	$output .= '<link>'.$self->{image}->{'link'}.'</link>'."\n"
+	    if $self->{image}->{link};
+	
+	# image width
+	$output .= '<rss091:width>'.$self->{image}->{width}.'</rss091:width>'."\n"
+	    if $self->{image}->{width};
+	    
+	# image height
+	$output .= '<rss091:height>'.$self->{image}->{height}.'</rss091:height>'."\n"
+	    if $self->{image}->{height};
+	    
+	# description
+	$output .= '<rss091:description>'.$self->{image}->{description}.'</rss091:description>'."\n"
+	    if $self->{image}->{description};
+	
+	# end image element
+	$output .= '</image>'."\n\n";
+    }
+    
+    ################
+    # item element #
+    ################
+    my $counter = 1;
+    foreach my $item (@{$self->{items}}) {
+	if ($item->{title}) {
+	    $output .= '<item rdf:about="'.$item->{'link'}.'"';
+	    $output .= " position=\"$counter\"" if ($self->{positioning} == 1);
+	    $output .= ">\n";
+	    $output .= '<inchannel rdf:resource="'.($item->{inchannel} || $self->{channel}->{inchannel}).'" />'."\n";
+	    $output .= '<title>'.$item->{title}.'</title>'."\n";
+	    $output .= '<link>'.$item->{'link'}.'</link>'."\n";
+	    $output .= '<description>'.$item->{description}.'</description>'."\n"
+		if $item->{description};
+	    
+	    # end image element
+	    $output .= '</item>'."\n\n";
+	}
+	$counter++;
+    }
+    
+    #####################
+    # textinput element #
+    #####################
+    if ($self->{textinput}->{'link'}) {
+	$output .= '<textinput rdf:about="'.$self->{textinput}->{'link'}.'">'."\n";
+	$output .= '<inchannel rdf:resource="'.($self->{textinput}->{inchannel} || $self->{channel}->{inchannel}).'" />'."\n";
+	$output .= '<title>'.$self->{textinput}->{title}.'</title>'."\n";
+	$output .= '<description>'.$self->{textinput}->{description}.'</description>'."\n";
+	$output .= '<name>'.$self->{textinput}->{name}.'</name>'."\n";
+	$output .= '<link>'.$self->{textinput}->{'link'}.'</link>'."\n";
+	$output .= '</textinput>'."\n\n";
+    }
+    
+    $output .= '</rdf:RDF>';
+}
+
+sub as_string {
+    my $self = shift;
+    my $version = ($self->{output} =~ /\d/) ? $self->{output} : $self->{version};
+    my $output;
+
+    ###########
+    # RSS 0.9 #
+    ###########
+    if ($version eq '0.9') {
+	$output = &as_rss_0_9($self);
+
+    ############
+    # RSS 0.91 #
+    ############
+    } elsif ($version eq '0.91') {
+	$output = &as_rss_0_9_1($self);
+
+    ###########
+    # RSS 1.0 #
+    ###########
     } else {
-	# end channel element
-	$output .= '</channel>'."\n";
-	$output .= '</rss>';
+	$output = &as_rss_1_0($self);
     }
 
     return $output;
@@ -507,29 +806,55 @@ sub as_string {
 
 sub handle_char {
     my ($self,$cdata) = (@_);
-    #return unless $cdata =~ /\S+/;
+    
+    #print $self->{namespaces}->{'#default'};
+
 	# image element
-    if ($self->within_element("image")) {
+    if (
+	$self->within_element("image") 
+	|| $self->within_element($self->generate_ns_name("image",$self->{namespaces}->{'#default'}))
+	) 
+    {
 	$self->{image}->{$self->current_element} .= $cdata;
 
 	# item element
-    } elsif ($self->within_element("item")) {
+	} elsif (
+		 $self->within_element("item")
+		 || $self->within_element($self->generate_ns_name("item",$self->{namespaces}->{'#default'}))
+		 ) 
+	{
 	$self->{'items'}->[$self->{num_items}-1]->{$self->current_element} .= $cdata;
 
 	# textinput element
-    } elsif ($self->within_element("textinput")) {
+    } elsif (
+	     $self->within_element("textinput")
+	     || $self->within_element($self->generate_ns_name("textinput",$self->{namespaces}->{'#default'}))
+	     ) 
+    {
 	$self->{'textinput'}->{$self->current_element} .= $cdata;
 
 	# skipHours element
-    } elsif ($self->within_element("skipHours")) {
+    } elsif (
+	     $self->within_element("skipHours")
+	     || $self->within_element($self->generate_ns_name("skipHours",$self->{namespaces}->{'#default'}))
+	     ) 
+    {
 	$self->{'skipHours'}->{$self->current_element} .= $cdata;
 
 	# skipDays element
-    } elsif ($self->within_element("skipDays")) {
+    } elsif (
+	     $self->within_element("skipDays")
+	     || $self->within_element($self->generate_ns_name("skipDays",$self->{namespaces}->{'#default'}))
+	     ) 
+    {
 	$self->{'skipDays'}->{$self->current_element} .= $cdata;
 
 	# channel element
-    } elsif ($self->within_element("channel")) {
+    } elsif (
+	     $self->within_element("channel")
+	     || $self->within_element($self->generate_ns_name("channel",$self->{namespaces}->{'#default'}))
+	     ) 
+    {
 	$self->{channel}->{$self->current_element} .= $cdata;
     }
 }
@@ -547,13 +872,47 @@ sub handle_start {
    
     # beginning of RSS 0.91 
     if ($el eq 'rss') {
-	#print "VERSION: $attribs{version}\n";
-	$self->{version} = $attribs{version} if exists($attribs{version});
+	if (exists($attribs{version})) {
+	    $self->{_internal}->{version} = $attribs{version};
+	} else {
+	    croak "Malformed RSS: invalid version\n";
+	}
 
-    # beginning of RSS 0.9
-    } elsif ($el eq 'rdf:RDF') {
-	#print "VERSION: 0.9\n";
-	$self->{version} = '0.9';
+    # beginning of RSS 1.0 or RSS 0.9
+    } elsif ($el eq 'RDF') {
+	my @prefixes = $self->new_ns_prefixes;
+	foreach my $prefix (@prefixes) {
+	    my $uri = $self->expand_ns_prefix($prefix);
+	    $self->{namespaces}->{$prefix} = $uri;
+	}
+
+	
+	if ($self->expand_ns_prefix('#default') =~ /\/1.0\//) {
+	    $self->{_internal}->{version} = '1.0';
+	} elsif ($self->expand_ns_prefix('#default') =~ /\/0.9\//) {
+	    $self->{_internal}->{version} = '0.9';
+	} else {
+	    croak "Malformed RSS: invalid version\n";
+	}
+
+    # beginning of inchannel element
+    } elsif ($el eq 'inchannel') {
+	# channel element
+	if ($self->within_element("channel")) {
+	    $self->{channel}->{inchannel} = $attribs{resource};
+
+	# item element
+	} elsif ($self->within_element("item")) {
+	    $self->{'items'}->[$self->{num_items}-1]->{inchannel} = $attribs{resource};
+ 
+        # image element
+	} elsif ($self->within_element("image")) {
+	    $self->{image}->{inchannel} = $attribs{resource};
+
+	# textinput element
+	} elsif ($self->within_element("textinput")) {
+	    $self->{textinput}->{inchannel} = $attribs{resource};
+	}
 
     # beginning of item element
     } elsif ($el eq 'item') {
@@ -565,11 +924,13 @@ sub handle_start {
 sub parse { 
     my $self = shift;
     $self->SUPER::parse(shift);
+    $self->{version} = $self->{_internal}->{version};
 }
 
 sub parsefile {
     my $self = shift;
     $self->SUPER::parsefile(shift);
+    $self->{version} = $self->{_internal}->{version};
 }
 
 sub save {
@@ -589,6 +950,7 @@ sub AUTOLOAD {
     my $type = ref($self) || croak "$self is not an object\n";
     my $name = $AUTOLOAD;
     $name =~ s/.*://;
+    return if $name eq 'DESTROY';
     
     croak "Unregistered entity: Can't access $name field in object of class $type"
 	unless (exists $self->{$name});
@@ -649,8 +1011,13 @@ XML::RSS - creates and updates RSS files
 
 =head1 SYNOPSIS
 
+ # create an RSS 1.0 file
+ use XML::RSS;
+ my $rss = new XML::RSS (output => '1.0);
+
  # create an RSS 0.91 file
  use XML::RSS;
+ my $rss = new XML::RSS (version => '0.91');
  $rss->channel(title          => 'freshmeat.net',
                link           => 'http://freshmeat.net',
                language       => 'en', 
@@ -688,6 +1055,7 @@ XML::RSS - creates and updates RSS files
 
  # create an RSS 0.9 file
  use XML::RSS;
+ my $rss = new XML::RSS (version => '0.9');
  $rss->channel(title => "freshmeat.net",
                link  => "http://freshmeat.net",
                description => "the one-stop-shop for all your Linux software needs",
@@ -733,34 +1101,48 @@ XML::RSS - creates and updates RSS files
      print "link: $item->{'link'}\n\n";
  }
 
+ # output the RSS 0.9 or 0.91 file as RSS 1.0
+ $rss->{output} = '1.0';
+ print $rss->as_string;
+
 =head1 DESCRIPTION
 
 This module provides a basic framework for creating and maintaining 
-RDF Site Summary (RSS) files. This distribution also contains several 
-examples that allow you to generate HTML from an RSS file. 
+RDF Site Summary (RSS) files. This distribution also contains many 
+examples that allow you to generate HTML from an RSS, convert between
+0.9, 0.91, and 1.0 version, and other nifty things. 
 This might be helpful if you want to include news feeds on your Web 
-site from sources like Slashot and Freshmeat.
+site from sources like Slashot and Freshmeat or if you want to syndicate
+your own content.
 
-XML::RSS currently supports both version 0.9 and 0.91 of RSS.
+XML::RSS currently supports 0.9, 0.91, and 1.0 versions of RSS.
 See http://my.netscape.com/publish/help/mnn20/quickstart.html
 for information on RSS 0.91. See http://my.netscape.com/publish/help/
-for RSS 0.9.
+for RSS 0.9. See http://www.egroups.com/files/rss-dev/specification.html
+for RSS 1.0.
 
-RSS is primarily used by content authors who want to create a 
-Netscape Netcenter channel, however, that doesn't exclude us from using it
-in other applications.
-For example, you may want to distribute daily news headlines to partners and 
-customers who convert it to some other format, like HTML.
+RSS was originally developed by Netscape as the format for 
+Netscape Netcenter channels, however, many Web sites have since
+adopted it as a simple syndication format. With the advent of RSS 1.0,
+users are now able to syndication many different kinds of content
+including news headlines, threaded measages, products catalogs, etc.
 
 =head1 METHODS
 
 =over 4
 
-=item new XML::RSS (version=>$version, encoding=>$encoding)
+=item new XML::RSS (version=>$version, encoding=>$encoding,
+output=>$output, positioning=>1)
 
 Constructor for XML::RSS. It returns a reference to an XML::RSS object.
 You may also pass the RSS version and the XML encoding to use. The default
-B<version> is 0.91. The default B<encoding> is UTF-8.
+B<version> is 1.0. The default B<encoding> is UTF-8. You may also specify
+the B<output> format regarless of the input version. This comes in handy
+when you want to convert RSS between versions. The XML::RSS modules
+will convert between any of the formats. The B<positioning> parameter
+is turned on by default. It can be turned off by passing a 0 when
+a new instance of XML::RSS is created. This turns on the item B<position>
+attribute when outputting RSS 1.0.
 
 =item add_item (title=>$title, link=>$link, description=>$desc, mode=>$mode)
 
@@ -784,8 +1166,11 @@ managingEditor=>$editor, webMaster=>$webMaster)
 
 Channel information is required in RSS. The B<title> cannot
 be more the 40 characters, the B<link> 500, and the B<description>
-500. B<title>, B<link>, B<description>, and B<language> are required.
-The other parameters are optional.
+500 when outputting RSS 0.9. B<title>, B<link>, and B<description>, 
+are required for RSS 1.0. B<language> is required for RSS 0.91.
+Any of the channel elements can be used in RSS 1.0 since they will
+be imported via the rss091 namespace. The other parameters are optional
+for RSS 0.91 and 1.0.
 
 To retreive the values of the channel, pass the name of the value
 (title, link, or description) as the first and only argument
@@ -799,7 +1184,8 @@ height=>$height, description=>$desc)
 Adding an image is not required. B<url> is the URL of the
 image, B<link> is the URL the image is linked to. B<title>, B<url>,
 and B<link> parameters are required if you are going to
-use an image in your RSS file.
+use an image in your RSS file. The remaining image elements are used
+in RSS 0.91 or optionally imported into RSS 1.0 via the rss091 namespace.
 
 The method for retrieving the values for the image is the same as it
 is for B<channel()>.
@@ -820,19 +1206,21 @@ Saves the RSS to a specified file.
 
 Specifies the number of hours that a server should wait before retrieving
 the RSS file. The B<hour> parameter is required if the skipHours method
-is used.
+is used. This method is currently broken.
 
 =item skipDays (day=>$day)
 
 Specified the number of days that a server should wait before retrieving
 the RSS file. The B<day> parameter is required if the skipDays method
-is used.
+is used. This method is currently broken.
 
 =item strict ($boolean)
 
 If it's set to 1, it will adhere to the lengths as specified
 by Netscape Netcenter requirements. It's set to 0 by default.
 Use it if the RSS file you're generating is for Netcenter.
+strict will only work for RSS 0.9 and 0.91. Do not use it for
+RSS 1.0.
 
 =item textinput (title=>$title, description=>$desc, name=>$name, link=>$link);
 
