@@ -17,3 +17,4 @@ print "Copright: ".$rss->channel('copyright')."\n";
 print "Publish Date: ".$rss->channel('pubDate')."\n";
 print "Last Build Date: ".$rss->channel('lastBuildDate')."\n";
 print "CDF URL: ".$rss->channel('docs')."\n";
+print "Items: ".scalar(@{$rss->items})."\n";

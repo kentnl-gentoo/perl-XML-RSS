@@ -11,6 +11,8 @@ use XML::RSS;
 my $rss = new XML::RSS (version => '0.91',
 			encoding => 'ISO-8859-1');
 
+$rss->strict("1");
+
 $rss->channel(title          => 'freshmeat.net',
 	      link           => 'http://freshmeat.net',
 	      language       => 'en', 

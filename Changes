@@ -15,3 +15,6 @@ Revision history for Perl extension XML::RSS.
       now more suitable for including news feeds on
       a Web site. Also added ability to give local
       filename or http URL.
+0.6 - numerous minor bug fixes
+	- it no longer checks for size as specified by Netscape's RSS spec
+      unless otherwise specified

@@ -1,9 +1,9 @@
-Copyright (c) 1998 Jonathan Eisenzopf. All rights reserved.
+Copyright (c) 1999 Jonathan Eisenzopf. All rights reserved.
 This package is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
 
 NAME
-XML::RSS Version 0.5
+XML::RSS Version 0.6
 
 DESCRIPTION
 This module was created to help those who need to manage
@@ -21,6 +21,9 @@ problems and/or suggestions.
 REQUIREMENTS
 This module requires version 2.23 or greater of the XML::Parser module.
 The latest version is available at any CPAN archive.
+
+You may have problems if you're using Perl 5.004. If you do, you'll
+need to get the latest version of XML::Parser.
 
 INSTALLATION
 perl Makefile.PL
@@ -42,3 +45,6 @@ default entities.
 
 CREDITS
 Wojciech Zwiefka <wojtekz@cnt.pl>
+Chris Nandor <pudge@pobox.com>
+Jim Hebert <jim@cosource.com>
+

@@ -32,8 +32,8 @@ my %v0_9_ok_fields = (
 	},
     items => [],
     num_items => 0,
-    version         => '.91',
-    encoding        => 'UTF-8'
+    version         => '',
+    encoding        => ''
 );
 
 my %v0_9_1_ok_fields = (
@@ -44,7 +44,7 @@ my %v0_9_1_ok_fields = (
 	docs           => '',
 	language       => '',
 	lastBuildDate  => '',
-	link           => '',
+	'link'         => '',
 	managingEditor => '',
 	pubDate        => '',
 	rating         => '',
@@ -53,9 +53,9 @@ my %v0_9_1_ok_fields = (
     image  => { 
 	title       => '',
 	url         => '',
-	link        => '',
-	width       => '88',
-	height      => '31',
+	'link'      => '',
+	width       => '',
+	height      => '',
 	description => ''
 	},
     skipDays  => {
@@ -68,12 +68,12 @@ my %v0_9_1_ok_fields = (
 	title       => '',
 	description => '',
 	name        => '',
-	link        => ''
+	'link'      => ''
 	},
     items           => [],
     num_items       => 0,
-    version         => '.91',
-    encoding        => 'UTF-8'
+    version         => '',
+    encoding        => ''
 		     
 );
 
@@ -218,7 +218,7 @@ my $_REQ_v0_9_1 = {
 	"link"           => [0,500],
 	"width"          => [0,144],
 	"height"         => [0,400],
-	"description"    => [0,100]
+	"description"    => [0,500]
 	},
     item => {
 	"title"          => [1,100],
@@ -256,6 +256,9 @@ sub _initialize {
     # init num of items to 0
     $self->{num_items} = 0;
 
+    # adhere to Netscape limits; no by default
+    $self->{'strict'} = 0;
+
     # initialize items
     $self->{items} = [];
 
@@ -289,21 +292,24 @@ sub add_item {
     my $self = shift;
     my $hash = {@_};
 
-    # make sure we have a title and link
-    croak "title and link elements are required" 
-	unless ($hash->{title} && $hash->{link});
+    # strict Netscape Netcenter length checks
+    if ($self->{'strict'}) {
+	# make sure we have a title and link
+	croak "title and link elements are required" 
+	    unless ($hash->{title} && $hash->{'link'});
+	
+	# check string lengths
+	croak "title cannot exceed 100 characters in length" 
+	    if (length($hash->{title}) > 100);
+	croak "link cannot exceed 500 characters in length" 
+	    if (length($hash->{'link'}) > 500);
+	croak "description cannot exceed 500 characters in length"
+	    if (exists($hash->{description}) 
+		&& length($hash->{description}) > 500);
 
-    # check string lengths
-    croak "title cannot exceed 100 characters in length" 
-	if (length($hash->{title}) > 100);
-    croak "link cannot exceed 500 characters in length" 
-	if (length($hash->{link}) > 500);
-    croak "description cannot exceed 500 characters in length"
-	if (exists($hash->{description}) 
-	    && length($hash->{description}) > 500);
-
-    # make sure there aren't already 15 items
-    croak "total items cannot exceed 15 " if (@{$self->{items}} >= 15);
+	# make sure there aren't already 15 items
+	croak "total items cannot exceed 15 " if (@{$self->{items}} >= 15);
+    }
 
     # add the item to the list
     if (defined($hash->{mode}) && $hash->{mode} eq 'insert') {
@@ -351,7 +357,7 @@ sub as_string {
     ###################
     $output .= '<channel>'."\n";
     $output .= '<title>'.$self->{channel}->{title}.'</title>'."\n";
-    $output .= '<link>'.$self->{channel}->{link}.'</link>'."\n";
+    $output .= '<link>'.$self->{channel}->{'link'}.'</link>'."\n";
     $output .= '<description>'.$self->{channel}->{description}.'</description>'."\n";
 
     # additional elements for RSS 0.91
@@ -408,7 +414,7 @@ sub as_string {
 	$output .= '<url>'.$self->{image}->{url}.'</url>'."\n";
 
 	# link
-	$output .= '<link>'.$self->{image}->{link}.'</link>'."\n"
+	$output .= '<link>'.$self->{image}->{'link'}.'</link>'."\n"
 	    if $self->{image}->{link};
 
 	# additional elements for RSS 0.91
@@ -437,12 +443,12 @@ sub as_string {
 	if ($item->{title}) {
 	    $output .= '<item>'."\n";
 	    $output .= '<title>'.$item->{title}.'</title>'."\n";
-	    $output .= '<link>'.$item->{link}.'</link>'."\n";
+	    $output .= '<link>'.$item->{'link'}.'</link>'."\n";
 
 	    # additional elements for RSS 0.91
 	    if ($self->{version} eq '0.91') {
-		$output .= '<description>'.$self->{image}->{description}.'</description>'."\n"
-		    if $self->{image}->{description};
+		$output .= '<description>'.$item->{description}.'</description>'."\n"
+		    if $item->{description};
 	    }
 
 	    # end image element
@@ -453,12 +459,12 @@ sub as_string {
     #####################
     # textinput element #
     #####################
-    if ($self->{textinput}->{link}) {
+    if ($self->{textinput}->{'link'}) {
 	$output .= '<textinput>'."\n";
 	$output .= '<title>'.$self->{textinput}->{title}.'</title>'."\n";
 	$output .= '<description>'.$self->{textinput}->{description}.'</description>'."\n";
 	$output .= '<name>'.$self->{textinput}->{name}.'</name>'."\n";
-	$output .= '<link>'.$self->{textinput}->{link}.'</link>'."\n";
+	$output .= '<link>'.$self->{textinput}->{'link'}.'</link>'."\n";
 	$output .= '</textinput>'."\n\n";
     }
 
@@ -498,15 +504,14 @@ sub as_string {
 
 sub handle_char {
     my ($self,$cdata) = (@_);
-    return unless $cdata =~ /\S+/;
+    #return unless $cdata =~ /\S+/;
 	# image element
     if ($self->within_element("image")) {
 	$self->{image}->{$self->current_element} .= $cdata;
 
 	# item element
     } elsif ($self->within_element("item")) {
-	$self->{'items'}->[$self->{num_items}]->{$self->current_element} .= $cdata;
-	#print "CDATA: $cdata\n";
+	$self->{'items'}->[$self->{num_items}-1]->{$self->current_element} .= $cdata;
 
 	# textinput element
     } elsif ($self->within_element("textinput")) {
@@ -571,6 +576,11 @@ sub save {
     close OUT;
 }
 
+sub strict {
+    my ($self,$value) = @_;
+    $self->{'strict'} = $value;
+}
+
 sub AUTOLOAD {
     my $self = shift;
     my $type = ref($self) || croak "$self is not an object\n";
@@ -589,18 +599,21 @@ sub AUTOLOAD {
 	my %hash = @_;
 	
 	# make sure we have required elements and correct lengths
-	my $_REQ;
-	($self->{version} eq '0.9')
-	    ? ($_REQ = $_REQ_v0_9)
-		: ($_REQ = $_REQ_v0_9_1);
-	
-	# store data in object
-	foreach my $key (keys(%hash)) {
-	    my $req_element = $_REQ->{$name}->{$key};
-	    croak "$key cannot exceed ".$req_element->[1]." characters in length"
-		unless length($hash{$key}) <= $req_element->[1];
-	    $self->{$name}->{$key} = $hash{$key};
+	if ($self->{'strict'}) {
+	    my $_REQ;
+	    ($self->{version} eq '0.9')
+		? ($_REQ = $_REQ_v0_9)
+		    : ($_REQ = $_REQ_v0_9_1);
+	    
+	    # store data in object
+	    foreach my $key (keys(%hash)) {
+		my $req_element = $_REQ->{$name}->{$key};
+		confess "$key cannot exceed " . $req_element->[1] . " characters in length"
+		    if defined $req_element->[1] && length($hash{$key}) > $req_element->[1];
+		$self->{$name}->{$key} = $hash{$key};
+	    }
 	}
+	# return value
 	return $self->{$name};
 	
     # otherwise, just return a reference to the whole thing
@@ -809,6 +822,12 @@ Specified the number of days that a server should wait before retrieving
 the RSS file. The B<day> parameter is required if the skipDays method
 is used.
 
+=item strict ($boolean)
+
+If it's set to 1, it will adhere to the lengths as specified
+by Netscape Netcenter requirements. It's set to 0 by default.
+Use it if the RSS file you're generating is for Netcenter.
+
 =item textinput (title=>$title, description=>$desc, name=>$name, link=>$link);
 
 This RSS element is also optional. Using it allows users to submit a Query
@@ -826,6 +845,9 @@ Jonathan Eisenzopf <eisen@pobox.com>
 =head1 CREDITS
 
 Wojciech Zwiefka <wojtekz@cnt.pl>
+Chris Nandor <pudge@pobox.com>
+Jim Hebert <jim@cosource.com>
+
 
 =head1 SEE ALSO
 
