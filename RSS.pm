@@ -8,9 +8,9 @@ package XML::RSS;
 use strict;
 use Carp;
 use XML::Parser;
-use vars qw($VERSION $AUTOLOAD @ISA);
+use vars qw($VERSION $AUTOLOAD @ISA $modules);
 
-$VERSION = '0.9';
+$VERSION = '0.10';
 @ISA = qw(XML::Parser);
 
 my %v0_9_ok_fields = (
@@ -104,7 +104,6 @@ my %v1_0_ok_fields = (
     num_items => 0,
     version         => '',
     encoding        => '',
-    positioning     => 1,
     output          => '',
 );
 
@@ -264,16 +263,40 @@ my $_REQ_v0_9_1 = {
 	},
     skipHours => {
 	"hour"           => [1,23]
-	},
+	},	
     skipDays => {
 	"day"            => [1,10]
 	}
 };
 
-# RDF module support
 my $modules = {
-    rss091 => 'http://purl.org/rss/1.0/modules#rss091'
+    'http://purl.org/rss/1.0/modules/syndication/' => 'syn',
+    'http://purl.org/dc/elements/1.1/' => 'dc',
 };
+
+my %syn_ok_fields = (
+	'updateBase' => '',
+	'updateFrequency' => '',
+	'updatePeriod' => '',
+);
+
+my %dc_ok_fields = (
+	'title' => '',
+	'creator' => '',
+	'subject' => '',
+	'description' => '',
+	'publisher' => '',
+	'contributor' => '',
+	'date' => '',
+	'type' => '',
+	'format' => '',
+	'identifier' => '',
+	'source' => '', 
+	'language' => '', 
+	'relation' => '', 
+	'coverage' => '', 
+	'rights' => '',
+);
 
 sub new {
     my $class = shift;
@@ -316,11 +339,6 @@ sub _initialize {
     (exists($hash{output}))
 	? ($self->{output} = $hash{output})
 	    : ($self->{output} = "");
-
-    # turn on positioning for RSS 1.0
-    (exists($hash{positioning}))
-	? ($self->{positioning} = $hash{positioning})
-	    : ($self->{positioning} = 1);
 
     # encoding
     (exists($hash{encoding})) 
@@ -483,35 +501,54 @@ sub as_rss_0_9_1 {
     $output .= '<description>'.$self->{channel}->{description}.'</description>'."\n";
     
     # language
-    $output .= '<language>'.$self->{channel}->{language}.'</language>'."\n";
+    if ($self->{channel}->{'dc:language'}) {
+	$output .= '<language>'.$self->{channel}->{'dc:language'}.'</language>'."\n";
+    } elsif ($self->{channel}->{language}) {
+	$output .= '<language>'.$self->{channel}->{language}.'</language>'."\n";
+    }
 	
     # PICS rating
     $output .= '<rating>'.$self->{channel}->{rating}.'</rating>'."\n"
 	if $self->{channel}->{rating};
 	
     # copyright
-    $output .= '<copyright>'.$self->{channel}->{copyright}.'</copyright>'."\n"
-	if $self->{channel}->{copyright};
+    if ($self->{channel}->{'dc:rights'}) {
+	$output .= '<copyright>'.$self->{channel}->{'dc:rights'}.'</copyright>'."\n";
+    } elsif ($self->{channel}->{copyright}) {
+	$output .= '<copyright>'.$self->{channel}->{copyright}.'</copyright>'."\n";
+    }
 	
     # publication date
-    $output .= '<pubDate>'.$self->{channel}->{pubDate}.'</pubDate>'."\n"
-	if $self->{channel}->{pubDate};
+    if ($self->{channel}->{'dc:date'}) {
+	$output .= '<pubDate>'.$self->{channel}->{'dc:date'}.'</pubDate>'."\n";
+    } elsif ($self->{channel}->{pubDate}) {
+	$output .= '<pubDate>'.$self->{channel}->{pubDate}.'</pubDate>'."\n";
+    }
 	    
     # last build date
-    $output .= '<lastBuildDate>'.$self->{channel}->{lastBuildDate}.'</lastBuildDate>'."\n"
-	if $self->{channel}->{lastBuildDate};
+    if ($self->{channel}->{'dc:date'}) {
+	$output .= '<lastBuildDate>'.$self->{channel}->{'dc:date'}.'</lastBuildDate>'."\n";
+    } elsif ($self->{channel}->{lastBuildDate}) {
+	$output .= '<lastBuildDate>'.$self->{channel}->{pubDate}.'</lastBuildDate>'."\n";
+    }
 	    
     # external CDF URL
     $output .= '<docs>'.$self->{channel}->{docs}.'</docs>'."\n"
 	if $self->{channel}->{docs};
 	
     # managing editor
-    $output .= '<managingEditor>'.$self->{channel}->{managingEditor}.'</managingEditor>'."\n"
-	if $self->{channel}->{managingEditor};
+    if ($self->{channel}->{'dc:publisher'}) {
+	$output .= '<managingEditor>'.$self->{channel}->{'dc:publisher'}.'</managingEditor>'."\n";
+    } elsif ($self->{channel}->{managingEditor}) {
+	$output .= '<managingEditor>'.$self->{channel}->{managingEditor}.'</managingEditor>'."\n";
+    }
 	
     # webmaster
-    $output .= '<webMaster>'.$self->{channel}->{webMaster}.'</webMaster>'."\n"
-	if $self->{channel}->{webMaster};
+    if ($self->{channel}->{'dc:creator'}) {
+	$output .= '<webMaster>'.$self->{channel}->{'dc:creator'}.'</webMaster>'."\n";
+    } elsif ($self->{channel}->{webMaster}) {
+	$output .= '<webMaster>'.$self->{channel}->{webMaster}.'</webMaster>'."\n";
+    }
 	
     $output .= "\n";
 	
@@ -614,26 +651,9 @@ sub as_rss_1_0 {
     $output .=' xmlns="http://purl.org/rss/1.0/"'."\n";
 
     # print all imported namespaces
-    #foreach my $namespace (keys(%{$self->{namespaces}})) {
-	#$output.=" xmlns:$namespace=\"$self->{namespaces}->{$namespace}\""."\n";
-    #}
-
-    # import the rss091 namespace if we have any 0.91 elements
-    $output.=" xmlns:rss091=\"$modules->{rss091}\""."\n"
-	if ( $self->{channel}->{language}
-	     || $self->{channel}->{rating}
-	     || $self->{channel}->{copyright}
-	     || $self->{channel}->{pubDate}
-	     || $self->{channel}->{lastBuildDate}
-	     || $self->{channel}->{docs}
-	     || $self->{channel}->{managingEditor}
-	     || $self->{channel}->{webMaster}
-	     || $self->{image}->{width}
-	     || $self->{image}->{height}
-	     || $self->{image}->{description}
-	     || $self->{skipHours}
-	     || $self->{skipDays}
-	     );
+    while (my($k, $v) = each %$modules) {
+			$output.=" xmlns:$v=\"$k\"\n";
+    }
 
     $output .=">"."\n\n";
 			      
@@ -642,10 +662,6 @@ sub as_rss_1_0 {
     ###################
     $output .= '<channel rdf:about="'.$self->{channel}->{'link'}.'">'."\n";
 
-    # inchannel
-    $self->{channel}->{'inchannel'} = ($self->{channel}->{'inchannel'} || $self->{channel}->{'link'});
-    #$output .= '<inchannel rdf:resource="'.$self->{channel}->{'inchannel'}.'" />'."\n";
-    
     # title
     $output .= '<title>'.$self->{channel}->{title}.'</title>'."\n";
     
@@ -657,51 +673,73 @@ sub as_rss_1_0 {
     
     # additional elements for RSS 0.91
     # language
-    $output .= '<rss091:language>'.$self->{channel}->{language}.'</rss091:language>'."\n"
-	if $self->{channel}->{language};
+    if ($self->{channel}->{'dc:language'}) {
+	$output .= '<dc:language>'.$self->{channel}->{'dc:language'}.'</dc:language>'."\n";
+    } elsif ($self->{channel}->{language}) {
+	$output .= '<dc:language>'.$self->{channel}->{language}.'</dc:language>'."\n";
+    }
     
-    # PICS rating
-    $output .= '<rss091:rating>'.$self->{channel}->{rating}.'</rss091:rating>'."\n"
-	if $self->{channel}->{rating};
+    # PICS rating - Dublin Core has not decided how to incorporate PICS ratings yet
+    #$$output .= '<rss091:rating>'.$self->{channel}->{rating}.'</rss091:rating>'."\n"
+	#$if $self->{channel}->{rating};
 	
     # copyright
-    $output .= '<rss091:copyright>'.$self->{channel}->{copyright}.'</rss091:copyright>'."\n"
-	if $self->{channel}->{copyright};
+    if ($self->{channel}->{'dc:rights'}) {
+	$output .= '<dc:rights>'.$self->{channel}->{'dc:rights'}.'</dc:rights>'."\n";
+    } elsif ($self->{channel}->{copyright}) {
+	$output .= '<dc:rights>'.$self->{channel}->{copyright}.'</dc:rights>'."\n";
+    }
 	
     # publication date
-    $output .= '<rss091:pubDate>'.$self->{channel}->{pubDate}.'</rss091:pubDate>'."\n"
-	if $self->{channel}->{pubDate};
-	
-    # last build date
-    $output .= '<rss091:lastBuildDate>'.$self->{channel}->{lastBuildDate}.'</rss091:lastBuildDate>'."\n"
-	if $self->{channel}->{lastBuildDate};
+    if ($self->{channel}->{'dc:date'}) {
+	$output .= '<dc:date>'.$self->{channel}->{'dc:date'}.'</dc:date>'."\n";
+    } elsif ($self->{channel}->{pubDate}) {
+	$output .= '<dc:date>'.$self->{channel}->{pubDate}.'</dc:date>'."\n";
+    } elsif ($self->{channel}->{lastBuildDate}) {
+	$output .= '<dc:date>'.$self->{channel}->{lastBuildDate}.'</dc:date>'."\n";
+    }
 	
     # external CDF URL
-    $output .= '<rss091:docs>'.$self->{channel}->{docs}.'</rss091:docs>'."\n"
-	if $self->{channel}->{docs};
+    #$output .= '<rss091:docs>'.$self->{channel}->{docs}.'</rss091:docs>'."\n"
+	#if $self->{channel}->{docs};
 	
     # managing editor
-    $output .= '<rss091:managingEditor>'.$self->{channel}->{managingEditor}.'</rss091:managingEditor>'."\n"
-	if $self->{channel}->{managingEditor};
-	
-    # webmaster
-    $output .= '<rss091:webMaster>'.$self->{channel}->{webMaster}.'</rss091:webMaster>'."\n"
-	if $self->{channel}->{webMaster};
+    if ($self->{channel}->{'dc:publisher'}) {
+	$output .= '<dc:publisher>'.$self->{channel}->{'dc:publisher'}.'</dc:publisher>'."\n";
+    } elsif ($self->{channel}->{managingEditor}) {
+	$output .= '<dc:publisher>'.$self->{channel}->{managingEditor}.'</dc:publisher>'."\n";
+    }
 
-    # skipHours
-    if ($self->{skipHours}->{hour}) {
-	$output .= '<rss091:skipHours>'."\n";
-	$output .= '<rss091:hour>'.$self->{skipHours}->{hour}.'</rss091:hour>'."\n";
-	$output .= '</rss091:skipHours>'."\n\n";
+    # webmaster
+    if ($self->{channel}->{'dc:creator'}) {
+	$output .= '<dc:creator>'.$self->{channel}->{'dc:creator'}.'</dc:creator>'."\n";
+    } elsif ($self->{channel}->{webMaster}) {
+	$output .= '<dc:creator>'.$self->{channel}->{webMaster}.'</dc:creator>'."\n";
+    }
+
+    # dc module
+    foreach my $dc ( keys %dc_ok_fields ) {
+	$self->{channel}->{dc}->{$dc} and $output .= "<dc:$dc>".$self->{channel}->{dc}->{$dc}."</dc:$dc>\n";
+    }
+
+    # syndication module
+    foreach my $syn ( keys %syn_ok_fields ) {
+	$self->{channel}->{syn}->{$syn} and $output .= "<syn:$syn>".$self->{channel}->{syn}->{$syn}."</syn:$syn>\n";
     }
     
-    # skipDays
-    if ($self->{skipDays}->{day}) {
-	$output .= '<rss091:skipDays>'."\n";
-	$output .= '<rss091:day>'.$self->{skipDays}->{day}.'</rss091:day>'."\n";
-	$output .= '</rss091:skipDays>'."\n\n";
+    # Seq items
+    $output .= "<items>\n <rdf:Seq>\n";
+ 
+    foreach my $item (@{$self->{items}}) {
+	$output .= '  <rdf:li rdf:resource="'.$item->{'link'}.'" />'."\n";
     }
-	
+    
+    $output .= " </rdf:Seq>\n</items>\n";
+    
+    $self->{image}->{url} and $output .= '<image rdf:resource="'.$self->{image}->{url}.'" />'."\n";
+
+    $self->{textinput}->{'link'} and $output .= '<textinput rdf:resource="'.$self->{textinput}->{'link'}.'" />'."\n";
+
     # end channel element
     $output .= '</channel>'."\n\n";
     
@@ -711,9 +749,6 @@ sub as_rss_1_0 {
     if ($self->{image}->{url}) {
 	$output .= '<image rdf:about="'.$self->{image}->{url}.'">'."\n";
 	
-	# inchannel
-	$output .= '<inchannel rdf:resource="'.($self->{image}->{inchannel} || $self->{channel}->{inchannel}).'" />'."\n";
-
 	# title
 	$output .= '<title>'.$self->{image}->{title}.'</title>'."\n";
 	
@@ -725,16 +760,21 @@ sub as_rss_1_0 {
 	    if $self->{image}->{link};
 	
 	# image width
-	$output .= '<rss091:width>'.$self->{image}->{width}.'</rss091:width>'."\n"
-	    if $self->{image}->{width};
+	#$output .= '<rss091:width>'.$self->{image}->{width}.'</rss091:width>'."\n"
+	#    if $self->{image}->{width};
 	    
 	# image height
-	$output .= '<rss091:height>'.$self->{image}->{height}.'</rss091:height>'."\n"
-	    if $self->{image}->{height};
+	#$output .= '<rss091:height>'.$self->{image}->{height}.'</rss091:height>'."\n"
+	#    if $self->{image}->{height};
 	    
 	# description
-	$output .= '<rss091:description>'.$self->{image}->{description}.'</rss091:description>'."\n"
-	    if $self->{image}->{description};
+	#$output .= '<rss091:description>'.$self->{image}->{description}.'</rss091:description>'."\n"
+	#    if $self->{image}->{description};
+
+	# dc
+	foreach my $dc ( keys %dc_ok_fields ) {
+		$self->{image}->{dc}->{$dc} and $output .= "<dc:$dc>".$self->{image}->{dc}->{$dc}."</dc:$dc>\n";
+	}
 	
 	# end image element
 	$output .= '</image>'."\n\n";
@@ -743,22 +783,21 @@ sub as_rss_1_0 {
     ################
     # item element #
     ################
-    my $counter = 1;
     foreach my $item (@{$self->{items}}) {
 	if ($item->{title}) {
 	    $output .= '<item rdf:about="'.$item->{'link'}.'"';
-	    $output .= " position=\"$counter\"" if ($self->{positioning} == 1);
 	    $output .= ">\n";
-	    $output .= '<inchannel rdf:resource="'.($item->{inchannel} || $self->{channel}->{inchannel}).'" />'."\n";
 	    $output .= '<title>'.$item->{title}.'</title>'."\n";
 	    $output .= '<link>'.$item->{'link'}.'</link>'."\n";
-	    $output .= '<description>'.$item->{description}.'</description>'."\n"
-		if $item->{description};
+	    $item->{description} and $output .= '<description>'.$item->{description}.'</description>'."\n";
+	    
+	    foreach my $dc ( keys %dc_ok_fields ) {
+	    	$item->{dc}->{$dc} and $output .= "<dc:$dc>".$item->{dc}->{$dc}."</dc:$dc>\n";
+	    }
 	    
 	    # end image element
 	    $output .= '</item>'."\n\n";
 	}
-	$counter++;
     }
     
     #####################
@@ -766,11 +805,16 @@ sub as_rss_1_0 {
     #####################
     if ($self->{textinput}->{'link'}) {
 	$output .= '<textinput rdf:about="'.$self->{textinput}->{'link'}.'">'."\n";
-	$output .= '<inchannel rdf:resource="'.($self->{textinput}->{inchannel} || $self->{channel}->{inchannel}).'" />'."\n";
 	$output .= '<title>'.$self->{textinput}->{title}.'</title>'."\n";
 	$output .= '<description>'.$self->{textinput}->{description}.'</description>'."\n";
 	$output .= '<name>'.$self->{textinput}->{name}.'</name>'."\n";
 	$output .= '<link>'.$self->{textinput}->{'link'}.'</link>'."\n";
+
+	# dc
+	foreach my $dc ( keys %dc_ok_fields ) {
+	    $self->{textinput}->{dc}->{$dc} and $output .= "<dc:$dc>".$self->{textinput}->{dc}->{$dc}."</dc:$dc>\n";
+	}
+
 	$output .= '</textinput>'."\n\n";
     }
     
@@ -809,30 +853,65 @@ sub handle_char {
     
     #print $self->{namespaces}->{'#default'};
 
-	# image element
+    # image element
     if (
 	$self->within_element("image") 
 	|| $self->within_element($self->generate_ns_name("image",$self->{namespaces}->{'#default'}))
 	) 
     {
-	$self->{image}->{$self->current_element} .= $cdata;
+	my $ns = $self->namespace($self->current_element);
 
+	# If it's in the default namespace
+	if ((!$ns && !$self->{namespaces}->{'#default'}) || ($ns eq $self->{namespaces}->{'#default'})) {
+	    $self->{'image'}->{$self->current_element} .= $cdata;
+	}
+	else {
+	    # If it's in another namespace
+	    $self->{'image'}->{$ns}->{$self->current_element} .= $cdata;
+	    
+	    # If it's in a module namespace, provide a friendlier prefix duplicate
+	    $modules->{$ns} and $self->{'image'}->{$modules->{$ns}}->{$self->current_element} .= $cdata;
+	}
+	
 	# item element
-	} elsif (
-		 $self->within_element("item")
-		 || $self->within_element($self->generate_ns_name("item",$self->{namespaces}->{'#default'}))
-		 ) 
-	{
-	$self->{'items'}->[$self->{num_items}-1]->{$self->current_element} .= $cdata;
+    } elsif (
+	     $self->within_element("item")
+	     || $self->within_element($self->generate_ns_name("item",$self->{namespaces}->{'#default'}))
+	     ) 
+    {
+	my $ns = $self->namespace($self->current_element);
 
+	# If it's in the default RSS 1.0 namespace
+	if ((!$ns && !$self->{namespaces}->{'#default'}) || ($ns eq $self->{namespaces}->{'#default'})) {
+	    $self->{'items'}->[$self->{num_items}-1]->{$self->current_element} .= $cdata;
+	} else {
+	    # If it's in another namespace
+	    $self->{'items'}->[$self->{num_items}-1]->{$ns}->{$self->current_element} .= $cdata;
+	    
+	    # If it's in a module namespace, provide a friendlier prefix duplicate
+	    $modules->{$ns} and $self->{'items'}->[$self->{num_items}-1]->{$modules->{$ns}}->{$self->current_element} .= $cdata;
+	}
+	
 	# textinput element
     } elsif (
 	     $self->within_element("textinput")
 	     || $self->within_element($self->generate_ns_name("textinput",$self->{namespaces}->{'#default'}))
 	     ) 
     {
-	$self->{'textinput'}->{$self->current_element} .= $cdata;
-
+	my $ns = $self->namespace($self->current_element);
+	
+	# If it's in the default namespace
+	if ((!$ns && !$self->{namespaces}->{'#default'}) || ($ns eq $self->{namespaces}->{'#default'})) {
+	    $self->{'textinput'}->{$self->current_element} .= $cdata;
+	}
+	else {
+	    # If it's in another namespace
+	    $self->{'textinput'}->{$ns}->{$self->current_element} .= $cdata;
+	    
+	    # If it's in a module namespace, provide a friendlier prefix duplicate
+	    $modules->{$ns} and $self->{'textinput'}->{$modules->{$ns}}->{$self->current_element} .= $cdata;
+	}
+	
 	# skipHours element
     } elsif (
 	     $self->within_element("skipHours")
@@ -840,7 +919,7 @@ sub handle_char {
 	     ) 
     {
 	$self->{'skipHours'}->{$self->current_element} .= $cdata;
-
+	
 	# skipDays element
     } elsif (
 	     $self->within_element("skipDays")
@@ -848,14 +927,25 @@ sub handle_char {
 	     ) 
     {
 	$self->{'skipDays'}->{$self->current_element} .= $cdata;
-
+	
 	# channel element
     } elsif (
 	     $self->within_element("channel")
 	     || $self->within_element($self->generate_ns_name("channel",$self->{namespaces}->{'#default'}))
 	     ) 
     {
-	$self->{channel}->{$self->current_element} .= $cdata;
+	my $ns = $self->namespace($self->current_element);
+	
+	# If it's in the default namespace
+	if ((!$ns && !$self->{namespaces}->{'#default'}) || ($ns eq $self->{namespaces}->{'#default'})) {
+	    $self->{'channel'}->{$self->current_element} .= $cdata;
+	} else {
+	    # If it's in another namespace
+	    $self->{'channel'}->{$ns}->{$self->current_element} .= $cdata;
+	    
+	    # If it's in a module namespace, provide a friendlier prefix duplicate
+	    $modules->{$ns} and $self->{'channel'}->{$modules->{$ns}}->{$self->current_element} .= $cdata;
+	}
     }
 }
 
@@ -869,7 +959,7 @@ sub handle_start {
     my $self = shift;
     my $el   = shift;
     my %attribs = @_;
-   
+
     # beginning of RSS 0.91 
     if ($el eq 'rss') {
 	if (exists($attribs{version})) {
@@ -895,30 +985,33 @@ sub handle_start {
 	    croak "Malformed RSS: invalid version\n";
 	}
 
-    # beginning of inchannel element
-    } elsif ($el eq 'inchannel') {
-	# channel element
-	if ($self->within_element("channel")) {
-	    $self->{channel}->{inchannel} = $attribs{resource};
-
-	# item element
-	} elsif ($self->within_element("item")) {
-	    $self->{'items'}->[$self->{num_items}-1]->{inchannel} = $attribs{resource};
- 
-        # image element
-	} elsif ($self->within_element("image")) {
-	    $self->{image}->{inchannel} = $attribs{resource};
-
-	# textinput element
-	} elsif ($self->within_element("textinput")) {
-	    $self->{textinput}->{inchannel} = $attribs{resource};
-	}
-
     # beginning of item element
     } elsif ($el eq 'item') {
         # increment item count
 	$self->{num_items}++;
     }
+}
+
+sub append {
+	my($self, $inside, $cdata) = @_;
+
+	my $ns = $self->namespace($self->current_element);
+
+	# If it's in the default RSS 1.0 namespace
+	if ($ns eq 'http://purl.org/rss/1.0/') {
+		#$self->{'items'}->[$self->{num_items}-1]->{$self->current_element} .= $cdata;
+		$inside->{$self->current_element} .= $cdata;
+	}
+	
+	# If it's in another namespace
+	#$self->{'items'}->[$self->{num_items}-1]->{$ns}->{$self->current_element} .= $cdata;
+	$inside->{$ns}->{$self->current_element} .= $cdata;
+
+	# If it's in a module namespace, provide a friendlier prefix duplicate
+	#$modules->{$ns} and $self->{'items'}->[$self->{num_items}-1]->{$modules->{$ns}}->{$self->current_element} .= $cdata;
+	$modules->{$ns} and $inside->{$modules->{$ns}}->{$self->current_element} .= $cdata;
+
+	return $inside;
 }
 
 sub parse { 
@@ -1011,9 +1104,53 @@ XML::RSS - creates and updates RSS files
 
 =head1 SYNOPSIS
 
- # create an RSS 1.0 file
+ # create an RSS 1.0 file (http://purl.org/rss/1.0/)
  use XML::RSS;
- my $rss = new XML::RSS (output => '1.0);
+ my $rss = new XML::RSS (version => '1.0');
+ $rss->channel(
+   title        => "freshmeat.net",
+   link         => "http://freshmeat.net",
+   description  => "the one-stop-shop for all your Linux software needs",
+   dc => {
+     date       => '2000-08-23T07:00+00:00',
+     subject    => "Linux Software",
+     creator    => 'scoop@freshmeat.net',
+     publisher  => 'scoop@freshmeat.net',
+     rights     => 'Copyright 1999, Freshmeat.net',
+     language   => 'en-us',
+   },
+   syn => {
+     updatePeriod     => "hourly",
+     updateFrequency  => "1",
+     updateBase       => "1901-01-01T00:00+00:00",
+   },
+ );
+
+ $rss->image(
+   title  => "freshmeat.net",
+   url    => "http://freshmeat.net/images/fm.mini.jpg",
+   link   => "http://freshmeat.net",
+   dc => {
+     creator  => "G. Raphics (graphics at freshmeat.net)",
+   },
+ ); 
+   
+ $rss->add_item(
+   title       => "GTKeyboard 0.85",  
+   link        => "http://freshmeat.net/news/1999/06/21/930003829.html",
+   description => "GTKeyboard is a graphical keyboard that ...",
+   dc => {
+     subject  => "X11/Utilities",
+     creator  => "David Allen (s2mdalle at titan.vcu.edu)",
+   },
+ );
+
+ $rss->textinput(
+   title        => "quick finder",
+   description  => "Use the text input below to search freshmeat",
+   name         => "query",
+   link         => "http://core.freshmeat.net/search.php3",
+ );
 
  # create an RSS 0.91 file
  use XML::RSS;
@@ -1118,8 +1255,7 @@ your own content.
 XML::RSS currently supports 0.9, 0.91, and 1.0 versions of RSS.
 See http://my.netscape.com/publish/help/mnn20/quickstart.html
 for information on RSS 0.91. See http://my.netscape.com/publish/help/
-for RSS 0.9. See http://www.egroups.com/files/rss-dev/specification.html
-for RSS 1.0.
+for RSS 0.9. See http://purl.org/rss/1.0/ for RSS 1.0.
 
 RSS was originally developed by Netscape as the format for 
 Netscape Netcenter channels, however, many Web sites have since
@@ -1132,17 +1268,14 @@ including news headlines, threaded measages, products catalogs, etc.
 =over 4
 
 =item new XML::RSS (version=>$version, encoding=>$encoding,
-output=>$output, positioning=>1)
+output=>$output)
 
 Constructor for XML::RSS. It returns a reference to an XML::RSS object.
 You may also pass the RSS version and the XML encoding to use. The default
 B<version> is 1.0. The default B<encoding> is UTF-8. You may also specify
 the B<output> format regarless of the input version. This comes in handy
 when you want to convert RSS between versions. The XML::RSS modules
-will convert between any of the formats. The B<positioning> parameter
-is turned on by default. It can be turned off by passing a 0 when
-a new instance of XML::RSS is created. This turns on the item B<position>
-attribute when outputting RSS 1.0.
+will convert between any of the formats.
 
 =item add_item (title=>$title, link=>$link, description=>$desc, mode=>$mode)
 
@@ -1168,9 +1301,7 @@ Channel information is required in RSS. The B<title> cannot
 be more the 40 characters, the B<link> 500, and the B<description>
 500 when outputting RSS 0.9. B<title>, B<link>, and B<description>, 
 are required for RSS 1.0. B<language> is required for RSS 0.91.
-Any of the channel elements can be used in RSS 1.0 since they will
-be imported via the rss091 namespace. The other parameters are optional
-for RSS 0.91 and 1.0.
+The other parameters are optional for RSS 0.91 and 1.0.
 
 To retreive the values of the channel, pass the name of the value
 (title, link, or description) as the first and only argument
@@ -1232,6 +1363,51 @@ method.
 Access to the B<textinput> values is the the same as B<channel()> and 
 B<image()>.
 
+=head2 RSS 1.0 MODULES
+
+XML-Namespace-based modularization affords RSS 1.0 compartmentalized 
+extensibility.  The only modules that ship "in the box" with RSS 1.0 
+are Dublin Core (http://purl.org/rss/1.0/modules/dc/) and Syndication
+(http://purl.org/rss/1.0/modules/syndication/).  Consult the appropriate 
+module's documentation for further information. 
+
+Adding items from these modules in XML::RSS is as simple as adding other
+attributes such as title, link, and description.  The only difference
+is the compartmentalization of their key/value paris in a second-level 
+hash.
+
+  $rss->add_item (title=>$title, link=>$link, dc=>{ subject=>$subject, creator=>$creator });
+
+For elements of the Dublin Core module, use the key 'dc'.  For elements
+of the Syndication module, 'syn'.  These are the prefixes used in
+the RSS XML document itself.  They are associated with appropriate URI-based
+namespaces:
+
+  syn: http://purl.org/rss/1.0/modules/syndication/
+  dc:  http://purl.org/dc/elements/1.1/
+
+Dublin Core elements may occur in channel, image, item(s), and textinput 
+-- albeit uncomming to find them under image and textinput.  Syndication 
+elements are limited to the channel element.
+
+Access to module elements after parsing an RSS 1.0 document using
+XML::RSS is via either the prefix or namespace URI for your convenience.
+
+  print $rss->{items}->[0]->{dc}->{subject};
+
+  or
+
+  print $rss->{items}->[0]->{'http://purl.org/dc/elements/1.1/'}->{subject};
+
+For future extensibility, XML::RSS will grab elements of other namespaces 
+which appear in an RSS 1.0 document.  They are not, however, currently
+accessible via a simple prefix; access them via their namespace URL like so:
+
+  print $rss->{items}->[0]->{'http://purl.org/foo/elements/0.0/'}->{bar};
+
+XML::RSS does not at this time support insertion of non-standard module
+data into created RSS documents.
+
 =head1 AUTHOR
 
 Jonathan Eisenzopf <eisen@pobox.com>
@@ -1243,6 +1419,7 @@ Jonathan Eisenzopf <eisen@pobox.com>
  Jim Hebert <jim@cosource.com>
  Randal Schwartz <merlyn@stonehenge.com>
  rjp@browser.org
+ Rael Dornfest <rael@oreilly.com>
 
 =head1 SEE ALSO
 

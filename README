@@ -3,7 +3,7 @@ This package is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
 
 NAME
-XML::RSS Version 0.9
+XML::RSS Version 0.10
 
 DESCRIPTION
 This module was created to help those who need to manage
@@ -37,16 +37,17 @@ LIMITATIONS
  or parsefile(). This is not intentional, I just haven't been able to
  get it to work yet.
 -Same problem with the RSS version attribute as with encoding.
+-The module no longer supports the rss0.91 namespace, which was included
+ in the first RSS 1.0 specification to support extra 0.91 elements. If you 
+ use this module with RSS 1.0 files that used XML::RSS version 0.9, you
+ will lose those elements if you load the file and re-save it with 
+ this module. This information is now included in the dublin core
+ elements which is now supported natively in this module. This does
+ not affect coversions from 0.91 to 1.0 formats. That conversion works
+ fine.
  
 TROUBLESHOOTING
 -If you get an error when using the parse() or parsefile() methods, your
 RSS file is probably not valid XML. You must be sure to encode all XML
 default entities.
-
-CREDITS
-Wojciech Zwiefka <wojtekz@cnt.pl>
-Chris Nandor <pudge@pobox.com>
-Jim Hebert <jim@cosource.com>
-Randal Schwartz <merlyn@stonehenge.com>
-rjp@browser.org
 
