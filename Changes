@@ -1,5 +1,13 @@
-# $Id: Changes,v 1.7 2003/01/27 21:55:44 comdog Exp $
+# $Id: Changes,v 1.8 2003/01/31 17:29:09 comdog Exp $
 Revision history for Perl extension XML::RSS.
+
+1.00 - Fri Jan 31 11:26:41 2003
+	* the as_string method now encodes special characters. valid output!
+	* a new "Auto Add" feature can add modules for namespaces found
+	while parsing (off by default)
+	* can output RSS 2.0, but not parse it yet
+	* this is the last major release in this track.  we are going to
+	completely rewrite XML::RSS as something more extendable.
 
 0.98_05 - Mon Jan 27 15:54:32 2003
 	* The auto add_feature is not controlled by the $AUTO_ADD variable

@@ -1,4 +1,4 @@
-# $Id: RSS.pm,v 1.17 2003/01/31 17:19:22 comdog Exp $
+# $Id: RSS.pm,v 1.20 2003/02/03 21:45:44 comdog Exp $
 package XML::RSS;
 
 use strict;
@@ -6,7 +6,7 @@ use Carp;
 use XML::Parser;
 use vars qw($VERSION $AUTOLOAD @ISA $modules $AUTO_ADD);
 
-$VERSION = '1.00';
+$VERSION = '1.01';
 @ISA = qw(XML::Parser);
 
 $AUTO_ADD = 0;
@@ -1321,14 +1321,14 @@ sub handle_char {
 			(!$ns && !$self->{rss_namespace}) ||
 			($ns eq $self->{rss_namespace})
 		) {
-	    	$self->{'image'}->{$self->current_element} = $cdata;
+	    	$self->{'image'}->{$self->current_element} .= $cdata;
 		}
 		else {
 	    	# If it's in another namespace
-	    	$self->{'image'}->{$ns}->{$self->current_element} = $cdata;
+	    	$self->{'image'}->{$ns}->{$self->current_element} .= $cdata;
 
 	    	# If it's in a module namespace, provide a friendlier prefix duplicate
-	    	$modules->{$ns} and $self->{'image'}->{$modules->{$ns}}->{$self->current_element} = $cdata;
+	    	$modules->{$ns} and $self->{'image'}->{$modules->{$ns}}->{$self->current_element} .= $cdata;
 		}
 
 	# item element
@@ -1346,14 +1346,14 @@ sub handle_char {
 			(!$ns && !$self->{rss_namespace}) ||
 			($ns eq $self->{rss_namespace})
 		) {
-	    	$self->{'items'}->[$self->{num_items}-1]->{$self->current_element} = $cdata;
+	    	$self->{'items'}->[$self->{num_items}-1]->{$self->current_element} .= $cdata;
 		} else {
 	    	# If it's in another namespace
-	    	$self->{'items'}->[$self->{num_items}-1]->{$ns}->{$self->current_element} = $cdata;
+	    	$self->{'items'}->[$self->{num_items}-1]->{$ns}->{$self->current_element} .= $cdata;
 
 	    	# If it's in a module namespace, provide a friendlier prefix duplicate
 	    	$modules->{$ns} and
-				$self->{'items'}->[$self->{num_items}-1]->{$modules->{$ns}}->{$self->current_element} = $cdata;
+				$self->{'items'}->[$self->{num_items}-1]->{$modules->{$ns}}->{$self->current_element} .= $cdata;
 		}
 
 	# textinput element
@@ -1368,14 +1368,14 @@ sub handle_char {
 			(!$ns && !$self->{rss_namespace}) ||
 			($ns eq $self->{rss_namespace})
 		) {
-	    	$self->{'textinput'}->{$self->current_element} = $cdata;
+	    	$self->{'textinput'}->{$self->current_element} .= $cdata;
 		}
 		else {
 	    	# If it's in another namespace
-	    	$self->{'textinput'}->{$ns}->{$self->current_element} = $cdata;
+	    	$self->{'textinput'}->{$ns}->{$self->current_element} .= $cdata;
 
 	    	# If it's in a module namespace, provide a friendlier prefix duplicate
-	    	$modules->{$ns} and $self->{'textinput'}->{$modules->{$ns}}->{$self->current_element} = $cdata;
+	    	$modules->{$ns} and $self->{'textinput'}->{$modules->{$ns}}->{$self->current_element} .= $cdata;
 		}
 
 	# skipHours element
@@ -1383,14 +1383,14 @@ sub handle_char {
 	     $self->within_element("skipHours") ||
 	     $self->within_element($self->generate_ns_name("skipHours",$self->{rss_namespace}))
 	) {
-		$self->{'skipHours'}->{$self->current_element} = $cdata;
+		$self->{'skipHours'}->{$self->current_element} .= $cdata;
 
 		# skipDays element
     } elsif (
 	     $self->within_element("skipDays") ||
 		$self->within_element($self->generate_ns_name("skipDays",$self->{rss_namespace}))
 	) {
-		$self->{'skipDays'}->{$self->current_element} = $cdata;
+		$self->{'skipDays'}->{$self->current_element} .= $cdata;
 
 	# channel element
     } elsif (
@@ -1406,13 +1406,13 @@ sub handle_char {
 			(!$ns && !$self->{rss_namespace}) ||
 			($ns eq $self->{rss_namespace})
 		) {
-	    	$self->{'channel'}->{$self->current_element} = $cdata;
+	    	$self->{'channel'}->{$self->current_element} .= $cdata;
 		} else {
 	    	# If it's in another namespace
-	    	$self->{'channel'}->{$ns}->{$self->current_element} = $cdata;
+	    	$self->{'channel'}->{$ns}->{$self->current_element} .= $cdata;
 
 	    	# If it's in a module namespace, provide a friendlier prefix duplicate
-	    	$modules->{$ns} and $self->{'channel'}->{$modules->{$ns}}->{$self->current_element} = $cdata;
+	    	$modules->{$ns} and $self->{'channel'}->{$modules->{$ns}}->{$self->current_element} .= $cdata;
 		}
     }
 }
@@ -1581,13 +1581,15 @@ sub _auto_add_modules {
 
 sub parse {
     my $self = shift;
-    $self->SUPER::parse(shift);
+    $self->_initialize((%$self));
+	$self->SUPER::parse(shift);
     $self->_auto_add_modules if $AUTO_ADD;
     $self->{version} = $self->{_internal}->{version};
 }
 
 sub parsefile {
     my $self = shift;
+	$self->_initialize((%$self));
     $self->SUPER::parsefile(shift);
     $self->_auto_add_modules if $AUTO_ADD;
     $self->{version} = $self->{_internal}->{version};

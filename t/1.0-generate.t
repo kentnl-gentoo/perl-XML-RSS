@@ -23,7 +23,7 @@ use constant RSS_MOD_URI    => 'http://purl.org/my/rss/module/';
 use constant RSS_CREATOR    => "joeuser\@example.com";
 use constant RSS_ITEM_TITLE => "This is an item";
 use constant RSS_ITEM_LINK  => "http://example.com/$short_date";
-use constant RSS_ITEM_DESC  => "Yadda yadda yadda";
+use constant RSS_ITEM_DESC  => "Yadda & yadda & yadda";
 
 # 3
 ok($current_date,"Current date:$current_date");
@@ -144,11 +144,11 @@ Tests for generating RSS 1.0 data with XML::RSS.pm
 
 =head1 VERSION
 
-$Revision: 1.3 $
+$Revision: 1.4 $
 
 =head1 DATE
 
-$Date: 2002/11/19 23:57:08 $
+$Date: 2003/02/01 17:10:10 $
 
 =head1 AUTHOR
 
