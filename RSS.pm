@@ -10,7 +10,7 @@ use Carp;
 use XML::Parser;
 use vars qw($VERSION $AUTOLOAD @ISA);
 
-$VERSION = '0.04';
+$VERSION = '0.05';
 @ISA = qw(XML::Parser);
 
 my %v0_9_ok_fields = (
@@ -499,19 +499,30 @@ sub as_string {
 sub handle_char {
     my ($self,$cdata) = (@_);
     return unless $cdata =~ /\S+/;
+	# image element
     if ($self->within_element("image")) {
-	$self->{image}->{$self->current_element} = $cdata;
+	$self->{image}->{$self->current_element} .= $cdata;
+
+	# item element
     } elsif ($self->within_element("item")) {
-	$self->{num_items}++ if $self->current_element eq 'title';
-	$self->{'items'}->[$self->{num_items}]->{$self->current_element} = $cdata;
+	$self->{'items'}->[$self->{num_items}]->{$self->current_element} .= $cdata;
+	#print "CDATA: $cdata\n";
+
+	# textinput element
     } elsif ($self->within_element("textinput")) {
-	$self->{'textinput'}->{$self->current_element} = $cdata;
+	$self->{'textinput'}->{$self->current_element} .= $cdata;
+
+	# skipHours element
     } elsif ($self->within_element("skipHours")) {
-	$self->{'skipHours'}->{$self->current_element} = $cdata;
+	$self->{'skipHours'}->{$self->current_element} .= $cdata;
+
+	# skipDays element
     } elsif ($self->within_element("skipDays")) {
-	$self->{'skipDays'}->{$self->current_element} = $cdata;
+	$self->{'skipDays'}->{$self->current_element} .= $cdata;
+
+	# channel element
     } elsif ($self->within_element("channel")) {
-	$self->{channel}->{$self->current_element} = $cdata;
+	$self->{channel}->{$self->current_element} .= $cdata;
     }
 }
 
@@ -525,13 +536,21 @@ sub handle_start {
     my $self = shift;
     my $el   = shift;
     my %attribs = @_;
-    
+   
+    # beginning of RSS 0.91 
     if ($el eq 'rss') {
 	#print "VERSION: $attribs{version}\n";
 	$self->{version} = $attribs{version} if exists($attribs{version});
+
+    # beginning of RSS 0.9
     } elsif ($el eq 'rdf:RDF') {
 	#print "VERSION: 0.9\n";
 	$self->{version} = '0.9';
+
+    # beginning of item element
+    } elsif ($el eq 'item') {
+        # increment item count
+	$self->{num_items}++;
     }
 }
 
@@ -803,6 +822,10 @@ B<image()>.
 =head1 AUTHOR
 
 Jonathan Eisenzopf <eisen@pobox.com>
+
+=head1 CREDITS
+
+Wojciech Zwiefka <wojtekz@cnt.pl>
 
 =head1 SEE ALSO
 

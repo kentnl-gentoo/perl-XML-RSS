@@ -9,7 +9,6 @@ examples/create_rss_0.91.pl
 examples/create_rss_0.91_full.pl
 examples/update_rss.pl
 examples/fm.rdf
-examples/fm2.rdf
 examples/fm0.91.rdf
 examples/fm0.91_full.rdf
 examples/rss-0.9.dtd
@@ -17,3 +16,5 @@ examples/rss-0.91.dtd
 examples/rss2html.pl
 examples/rss_info.pl
 examples/xmlnews.rdf
+examples/linuxtoday.rdf
+examples/slashdot.rdf

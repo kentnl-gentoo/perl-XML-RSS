@@ -8,3 +8,10 @@ Revision history for Perl extension XML::RSS.
 	- added support for RSS 0.91
 0.4 - removed extraneous print
     - added stuff in examples/rss2html.pl
+0.5 - fixed handle_char method which croaked on cdata
+      that contained entities. Reported by 
+      Wojciech Zwiefka <wojtekz@cnt.pl>
+    - prettied up the output from rss2html.pl. It's
+      now more suitable for including news feeds on
+      a Web site. Also added ability to give local
+      filename or http URL.
