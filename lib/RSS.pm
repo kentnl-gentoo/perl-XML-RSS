@@ -1,8 +1,4 @@
-# Copyright (c) 2001 Jonathan Eisenzopf <eisen@pobox.com>
-# and Rael Dornfest <rael@oreilly.com>
-# XML::RSS is free software. You can redistribute it and/or
-# modify it under the same terms as Perl itself.
-
+# $Id: RSS.pm,v 1.2 2002/11/12 11:40:09 comdog Exp $
 package XML::RSS;
 
 use strict;
@@ -10,26 +6,26 @@ use Carp;
 use XML::Parser;
 use vars qw($VERSION $AUTOLOAD @ISA $modules);
 
-$VERSION = '0.97';
+$VERSION = '0.98_01';
 @ISA = qw(XML::Parser);
 
 my %v0_9_ok_fields = (
     channel => { 
-	title       => '',
-	description => '',
-	link        => '',
-	},
+		title       => '',
+		description => '',
+		link        => '',
+		},
     image  => { 
-	title => '',
-	url   => '',
-	link  => '' 
-	},
+		title => '',
+		url   => '',
+		link  => '' 
+		},
     textinput => { 
-	title       => '',
-	description => '',
-	name        => '',
-	link        => ''
-	},
+		title       => '',
+		description => '',
+		name        => '',
+		link        => ''
+		},
     items => [],
     num_items => 0,
     version         => '',
@@ -38,38 +34,38 @@ my %v0_9_ok_fields = (
 
 my %v0_9_1_ok_fields = (
     channel => { 
-	title          => '',
-	copyright      => '',
-	description    => '',
-	docs           => '',
-	language       => '',
-	lastBuildDate  => '',
-	'link'         => '',
-	managingEditor => '',
-	pubDate        => '',
-	rating         => '',
-	webMaster      => ''
-	},
+		title          => '',
+		copyright      => '',
+		description    => '',
+		docs           => '',
+		language       => '',
+		lastBuildDate  => '',
+		'link'         => '',
+		managingEditor => '',
+		pubDate        => '',
+		rating         => '',
+		webMaster      => ''
+		},
     image  => { 
-	title       => '',
-	url         => '',
-	'link'      => '',
-	width       => '',
-	height      => '',
-	description => ''
-	},
+		title       => '',
+		url         => '',
+		'link'      => '',
+		width       => '',
+		height      => '',
+		description => ''
+		},
     skipDays  => {
-	day         => ''
-	},
+		day         => ''
+		},
     skipHours => {
-	hour        => ''
-	},
+		hour        => ''
+		},
     textinput => {
-	title       => '',
-	description => '',
-	name        => '',
-	'link'      => ''
-	},
+		title       => '',
+		description => '',
+		name        => '',
+		'link'      => ''
+		},
     items           => [],
     num_items       => 0,
     version         => '',
@@ -79,27 +75,27 @@ my %v0_9_1_ok_fields = (
 
 my %v1_0_ok_fields = (
     channel => { 
-	title       => '',
-	description => '',
-	link        => '',
-	},
+		title       => '',
+		description => '',
+		link        => '',
+		},
     image  => { 
-	title => '',
-	url   => '',
-	link  => '' 
-	},
+		title => '',
+		url   => '',
+		link  => '' 
+		},
     textinput => { 
-	title       => '',
-	description => '',
-	name        => '',
-	link        => ''
-	},
+		title       => '',
+		description => '',
+		name        => '',
+		link        => ''
+		},
     skipDays  => {
-	day         => ''
-	},
+		day         => ''
+		},
     skipHours => {
-	hour        => ''
-	},
+		hour        => ''
+		},
     items => [],
     num_items => 0,
     version         => '',
@@ -269,6 +265,12 @@ my $_REQ_v0_9_1 = {
 	}
 };
 
+my $namespace_map = {
+	rss10	=> 'http://purl.org/rss/1.0/',
+	rss09	=> 'http://my.netscape.com/rdf/simple/0.9/'
+#	rss091	=> 'http://purl.org/rss/1.0/modules/rss091/'
+};
+
 my $modules = {
     'http://purl.org/rss/1.0/modules/syndication/' => 'syn',
     'http://purl.org/dc/elements/1.1/' => 'dc',
@@ -330,6 +332,7 @@ sub _initialize {
 
     # namespaces
     $self->{namespaces} = {};
+	$self->{rss_namespace} = '';
 
     # modules
     $self->{modules} = $modules;
@@ -429,7 +432,8 @@ sub as_rss_0_9 {
     my $output;
 
     # XML declaration
-    $output .= '<?xml version="1.0"?>'."\n\n";
+    my $encoding = exists $$self{encoding} ? qq| encoding="$$self{encoding}"| : '';
+    $output .= qq|<?xml version="1.0"$encoding?>\n\n|;
     
     # RDF root element
     $output .= '<rdf:RDF'."\n".'xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"'."\n";
@@ -922,105 +926,114 @@ sub as_string {
 }
 
 sub handle_char {
-    my ($self,$cdata) = (@_);
+	# removed assumption that RSS is the default namespace - kellan, 11/5/02
     
-    #print $self->{namespaces}->{'#default'};
-
+	my ($self,$cdata) = (@_);
+    
     # image element
     if (
-	$self->within_element("image") 
-	|| $self->within_element($self->generate_ns_name("image",$self->{namespaces}->{'#default'}))
-	) 
-    {
-	my $ns = $self->namespace($self->current_element);
-
-	# If it's in the default namespace
-	if ((!$ns && !$self->{namespaces}->{'#default'}) || ($ns eq $self->{namespaces}->{'#default'})) {
-	    $self->{'image'}->{$self->current_element} .= $cdata;
-	}
-	else {
-	    # If it's in another namespace
-	    $self->{'image'}->{$ns}->{$self->current_element} .= $cdata;
+		$self->within_element("image") || 
+		$self->within_element($self->generate_ns_name("image",$self->{rss_namespace}))
+	) {
+		my $ns = $self->namespace($self->current_element);
+		# If it's in the default namespace
+		if (
+			(!$ns && !$self->{rss_namespace}) || 
+			($ns eq $self->{rss_namespace})
+		) {
+	    	$self->{'image'}->{$self->current_element} .= $cdata;
+		}
+		else {
+	    	# If it's in another namespace
+	    	$self->{'image'}->{$ns}->{$self->current_element} .= $cdata;
 	    
-	    # If it's in a module namespace, provide a friendlier prefix duplicate
-	    $modules->{$ns} and $self->{'image'}->{$modules->{$ns}}->{$self->current_element} .= $cdata;
-	}
+	    	# If it's in a module namespace, provide a friendlier prefix duplicate
+	    	$modules->{$ns} and $self->{'image'}->{$modules->{$ns}}->{$self->current_element} .= $cdata;
+		}
 	
 	# item element
-    } elsif (
+    } 
+	elsif (
 	     $self->within_element("item")
-	     || $self->within_element($self->generate_ns_name("item",$self->{namespaces}->{'#default'}))
-	     ) 
-    {
-	return if $self->within_element($self->generate_ns_name("topics",'http://purl.org/rss/1.0/modules/taxonomy/'));
-	my $ns = $self->namespace($self->current_element);
+	     || $self->within_element($self->generate_ns_name("item",$self->{rss_namespace}))
+	) {
+		return if $self->within_element($self->generate_ns_name("topics",'http://purl.org/rss/1.0/modules/taxonomy/'));
+		
+		my $ns = $self->namespace($self->current_element);
 
-	# If it's in the default RSS 1.0 namespace
-	if ((!$ns && !$self->{namespaces}->{'#default'}) || ($ns eq $self->{namespaces}->{'#default'})) {
-	    $self->{'items'}->[$self->{num_items}-1]->{$self->current_element} .= $cdata;
-	} else {
-	    # If it's in another namespace
-	    $self->{'items'}->[$self->{num_items}-1]->{$ns}->{$self->current_element} .= $cdata;
+		# If it's in the default RSS 1.0 namespace
+		if (
+			(!$ns && !$self->{rss_namespace}) || 
+			($ns eq $self->{rss_namespace})
+		) {
+	    	$self->{'items'}->[$self->{num_items}-1]->{$self->current_element} .= $cdata;
+		} else {
+	    	# If it's in another namespace
+	    	$self->{'items'}->[$self->{num_items}-1]->{$ns}->{$self->current_element} .= $cdata;
 	    
-	    # If it's in a module namespace, provide a friendlier prefix duplicate
-	    $modules->{$ns} and $self->{'items'}->[$self->{num_items}-1]->{$modules->{$ns}}->{$self->current_element} .= $cdata;
-	}
+	    	# If it's in a module namespace, provide a friendlier prefix duplicate
+	    	$modules->{$ns} and 
+				$self->{'items'}->[$self->{num_items}-1]->{$modules->{$ns}}->{$self->current_element} .= $cdata;
+		}
 	
 	# textinput element
     } elsif (
 	     $self->within_element("textinput")
-	     || $self->within_element($self->generate_ns_name("textinput",$self->{namespaces}->{'#default'}))
-	     ) 
-    {
-	my $ns = $self->namespace($self->current_element);
+	     || $self->within_element($self->generate_ns_name("textinput",$self->{rss_namespace}))
+	) {
+		my $ns = $self->namespace($self->current_element);
 	
-	# If it's in the default namespace
-	if ((!$ns && !$self->{namespaces}->{'#default'}) || ($ns eq $self->{namespaces}->{'#default'})) {
-	    $self->{'textinput'}->{$self->current_element} .= $cdata;
-	}
-	else {
-	    # If it's in another namespace
-	    $self->{'textinput'}->{$ns}->{$self->current_element} .= $cdata;
+		# If it's in the default namespace
+		if (
+			(!$ns && !$self->{rss_namespace}) || 
+			($ns eq $self->{rss_namespace})
+		) {
+	    	$self->{'textinput'}->{$self->current_element} .= $cdata;
+		}
+		else {
+	    	# If it's in another namespace
+	    	$self->{'textinput'}->{$ns}->{$self->current_element} .= $cdata;
 	    
-	    # If it's in a module namespace, provide a friendlier prefix duplicate
-	    $modules->{$ns} and $self->{'textinput'}->{$modules->{$ns}}->{$self->current_element} .= $cdata;
-	}
+	    	# If it's in a module namespace, provide a friendlier prefix duplicate
+	    	$modules->{$ns} and $self->{'textinput'}->{$modules->{$ns}}->{$self->current_element} .= $cdata;
+		}
 	
 	# skipHours element
     } elsif (
-	     $self->within_element("skipHours")
-	     || $self->within_element($self->generate_ns_name("skipHours",$self->{namespaces}->{'#default'}))
-	     ) 
-    {
-	$self->{'skipHours'}->{$self->current_element} .= $cdata;
+	     $self->within_element("skipHours") ||
+	     $self->within_element($self->generate_ns_name("skipHours",$self->{rss_namespace}))
+	) {
+		$self->{'skipHours'}->{$self->current_element} .= $cdata;
 	
-	# skipDays element
+		# skipDays element
     } elsif (
-	     $self->within_element("skipDays")
-	     || $self->within_element($self->generate_ns_name("skipDays",$self->{namespaces}->{'#default'}))
-	     ) 
-    {
-	$self->{'skipDays'}->{$self->current_element} .= $cdata;
+	     $self->within_element("skipDays") || 
+		$self->within_element($self->generate_ns_name("skipDays",$self->{rss_namespace}))
+	) {
+		$self->{'skipDays'}->{$self->current_element} .= $cdata;
 	
 	# channel element
     } elsif (
-	     $self->within_element("channel")
-	     || $self->within_element($self->generate_ns_name("channel",$self->{namespaces}->{'#default'}))
-	     ) 
-    {
-	return if $self->within_element($self->generate_ns_name("topics",'http://purl.org/rss/1.0/modules/taxonomy/'));
-	my $ns = $self->namespace($self->current_element);
+	     $self->within_element("channel") ||
+		 $self->within_element($self->generate_ns_name("channel",$self->{rss_namespace}))
+	) {
+		return if $self->within_element($self->generate_ns_name("topics",'http://purl.org/rss/1.0/modules/taxonomy/'));
+		
+		my $ns = $self->namespace($self->current_element);
 	
-	# If it's in the default namespace
-	if ((!$ns && !$self->{namespaces}->{'#default'}) || ($ns eq $self->{namespaces}->{'#default'})) {
-	    $self->{'channel'}->{$self->current_element} .= $cdata;
-	} else {
-	    # If it's in another namespace
-	    $self->{'channel'}->{$ns}->{$self->current_element} .= $cdata;
+		# If it's in the default namespace
+		if (
+			(!$ns && !$self->{rss_namespace}) || 
+			($ns eq $self->{rss_namespace})
+		) {
+	    	$self->{'channel'}->{$self->current_element} .= $cdata;
+		} else {
+	    	# If it's in another namespace
+	    	$self->{'channel'}->{$ns}->{$self->current_element} .= $cdata;
 	    
-	    # If it's in a module namespace, provide a friendlier prefix duplicate
-	    $modules->{$ns} and $self->{'channel'}->{$modules->{$ns}}->{$self->current_element} .= $cdata;
-	}
+	    	# If it's in a module namespace, provide a friendlier prefix duplicate
+	    	$modules->{$ns} and $self->{'channel'}->{$modules->{$ns}}->{$self->current_element} .= $cdata;
+		}
     }
 }
 
@@ -1037,48 +1050,72 @@ sub handle_start {
 
     # beginning of RSS 0.91 
     if ($el eq 'rss') {
-	if (exists($attribs{version})) {
-	    $self->{_internal}->{version} = $attribs{version};
-	} else {
-	    croak "Malformed RSS: invalid version\n";
-	}
+		if (exists($attribs{version})) {
+		    $self->{_internal}->{version} = $attribs{version};
+		} else {
+		    croak "Malformed RSS: invalid version\n";
+		}
 
-    # beginning of RSS 1.0 or RSS 0.9
+    	# beginning of RSS 1.0 or RSS 0.9
     } elsif ($el eq 'RDF') {
-	my @prefixes = $self->new_ns_prefixes;
-	foreach my $prefix (@prefixes) {
-	    my $uri = $self->expand_ns_prefix($prefix);
-	    $self->{namespaces}->{$prefix} = $uri;
-	    #print "$prefix = $uri\n";
-	}
-
-	
-	if ($self->expand_ns_prefix('#default') =~ /\/1.0\//) {
-	    $self->{_internal}->{version} = '1.0';
-	} elsif ($self->expand_ns_prefix('#default') =~ /\/0.9\//) {
-	    $self->{_internal}->{version} = '0.9';
-	} else {
-	    croak "Malformed RSS: invalid version\n";
-	}
+		my @prefixes = $self->new_ns_prefixes;
+		foreach my $prefix (@prefixes) {
+	    	my $uri = $self->expand_ns_prefix($prefix);
+	    	$self->{namespaces}->{$prefix} = $uri;
+	    	#print "$prefix = $uri\n";
+		}
+		
+		# removed assumption that RSS is the default namespace - kellan, 11/5/02
+		#
+		foreach my $uri ( values %{ $self->{namespaces} } ) {
+			if ( $namespace_map->{'rss10'} eq $uri ) {
+				$self->{_internal}->{version} = '1.0';
+				$self->{rss_namespace} = $uri;
+				last;
+			}
+			elsif ( $namespace_map->{'rss09'} eq $uri ) {
+				$self->{_internal}->{version} = '0.9';
+				$self->{rss_namespace} = $uri;
+				last;
+			}
+		}
+		
+		# failed to match a namespace
+		if ( !defined($self->{_internal}->{version}) ) {
+			croak "Malformed RSS: invalid version\n"
+		}
+		#if ($self->expand_ns_prefix('#default') =~ /\/1.0\//) {
+		#    $self->{_internal}->{version} = '1.0';
+		#} elsif ($self->expand_ns_prefix('#default') =~ /\/0.9\//) {
+		#    $self->{_internal}->{version} = '0.9';
+		#} else {
+		#	croak "Malformed RSS: invalid version\n";
+		#}
 
     # beginning of item element
     } elsif ($el eq 'item') {
-        # increment item count
-	$self->{num_items}++;
-
+		# deal with trouble makers who use mod_content :)
+		my $ns =  $self->namespace( $el ); 
+        if ( 
+			(!$ns && !$self->{rss_namespace}) ||
+			($ns eq $self->{rss_namespace})
+		) {
+			# increment item count
+			$self->{num_items}++;
+		}
     # beginning of taxo li element in item element
     #'http://purl.org/rss/1.0/modules/taxonomy/' => 'taxo'
     } elsif ($self->within_element($self->generate_ns_name("topics",'http://purl.org/rss/1.0/modules/taxonomy/')) 
-	     && $self->within_element($self->generate_ns_name("item",$self->{namespaces}->{'#default'})) 
+	     && $self->within_element($self->generate_ns_name("item",$self->{namespace_map}->{'rss10'})) 
 	     && $self->current_element eq 'Bag' 
 	     && $el eq 'li') {
-	#print "taxo: ", $attribs{'resource'},"\n";
-	push(@{$self->{'items'}->[$self->{num_items}-1]->{'taxo'}},$attribs{'resource'});
-	$self->{'modules'}->{'http://purl.org/rss/1.0/modules/taxonomy/'} = 'taxo';
+		#print "taxo: ", $attribs{'resource'},"\n";
+		push(@{$self->{'items'}->[$self->{num_items}-1]->{'taxo'}},$attribs{'resource'});
+		$self->{'modules'}->{'http://purl.org/rss/1.0/modules/taxonomy/'} = 'taxo';
 
     # beginning of taxo li in channel element
     } elsif ($self->within_element($self->generate_ns_name("topics",'http://purl.org/rss/1.0/modules/taxonomy/')) 
-	     && $self->within_element($self->generate_ns_name("channel",$self->{namespaces}->{'#default'})) 
+	     && $self->within_element($self->generate_ns_name("channel",$self->{namespace_map}->{'rss10'})) 
 	     && $self->current_element eq 'Bag' 
 	     && $el eq 'li') {
 	push(@{$self->{'channel'}->{'taxo'}},$attribs{'resource'});
@@ -1190,7 +1227,6 @@ sub AUTOLOAD {
 
 1;
 __END__
-# Below is the stub of documentation for your module. You better edit it!
 
 =head1 NAME
 
@@ -1482,6 +1518,7 @@ Access to the B<textinput> values is the the same as B<channel()> and
 B<image()>.
 
 =item add_module(prefix=>$prefix, uri=>$uri)
+
 Adds a module namespace declaration to the XML::RSS object, allowing you
 to add modularity outside of the the standard RSS 1.0 modules.  At present,
 the standard modules Dublin Core (dc) and Syndication (syn) are predefined
@@ -1491,6 +1528,8 @@ The modules are stored in the hash %{$obj->{'modules'}} where
 B<$obj> is a reference to an XML::RSS object.
 
 For more information on RSS 1.0 Modules, read on.
+
+=back
 
 =head2 RSS 1.0 MODULES
 
@@ -1554,10 +1593,29 @@ prefix; access them via their namespace URL like so:
 XML::RSS will continue to provide built-in support for standard RSS 1.0
 modules as they appear.
 
+=head1 SOURCE AVAILABILITY
+
+This source is part of a SourceForge project which always has the
+latest sources in CVS, as well as all of the previous releases.
+
+	https://sourceforge.net/projects/perl-rss/
+
+If, for some reason, I disappear from the world, one of the other
+members of the project can shepherd this module appropriately.
+
 =head1 AUTHOR
 
 Jonathan Eisenzopf <eisen@pobox.com>
 Rael Dornfest <rael@oreilly.com>
+
+=head1 COPYRIGHT
+
+Copyright (c) 2001 Jonathan Eisenzopf <eisen@pobox.com>
+and Rael Dornfest <rael@oreilly.com>
+
+
+XML::RSS is free software. You can redistribute it and/or
+modify it under the same terms as Perl itself.
 
 =head1 CREDITS
 
@@ -1566,7 +1624,8 @@ Rael Dornfest <rael@oreilly.com>
  Jim Hebert <jim@cosource.com>
  Randal Schwartz <merlyn@stonehenge.com>
  rjp@browser.org
-
+ Kellan <kellan@protest.net>
+ 
 =head1 SEE ALSO
 
 perl(1), XML::Parser(3).

@@ -1,3 +1,4 @@
+# $Id: Changes,v 1.2 2002/11/12 11:55:50 comdog Exp $
 Revision history for Perl extension XML::RSS.
 
 0.1  Wed Jul  7 16:22:25 1999
@@ -40,3 +41,10 @@ Revision history for Perl extension XML::RSS.
          inside the channel or item elements and only supports one
          form of the module syntax. See the XML::RSS documentation
          for examples.
+
+0.98 Tue Nov 12 05:45:36 CST 2002
+	- module taken over by brian d foy <bdfoy@cpan.org>
+	- module now in SourceForge (http://www.sourceforge.net/projects/perl-rss)
+	- added support for arbitrary namespaces (with defaults to the
+	usual suspects)
+	- fixed ommission of encoding with version 0.9 output
