@@ -29,5 +29,9 @@ Revision history for Perl extension XML::RSS.
 0.94 Sat Dec 16 12:42:21 EST 2000
 	-added support for RSS1.0 RC1 release
 	-added support for Syndication and Dublin Core modules
-0.96 Sat Dec 23 11:28:03 EST 2000
+0.95 Sat Dec 23 11:28:03 EST 2000
 	-added support for including external namespaces and elements
+0.96 Sat Mar 17 17:21:27 EST 2001
+	-fixed RSS 0.91 output. When the source file that is parsed was
+         1.0, it did not properly translate all of the dc elements to
+         0.91 channel elements.

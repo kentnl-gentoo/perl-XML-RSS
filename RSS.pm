@@ -10,7 +10,7 @@ use Carp;
 use XML::Parser;
 use vars qw($VERSION $AUTOLOAD @ISA $modules);
 
-$VERSION = '0.95';
+$VERSION = '0.96';
 @ISA = qw(XML::Parser);
 
 my %v0_9_ok_fields = (
@@ -517,8 +517,8 @@ sub as_rss_0_9_1 {
     $output .= '<description>'.$self->{channel}->{description}.'</description>'."\n";
     
     # language
-    if ($self->{channel}->{'dc:language'}) {
-	$output .= '<language>'.$self->{channel}->{'dc:language'}.'</language>'."\n";
+    if ($self->{channel}->{'dc'}->{'language'}) {
+	$output .= '<language>'.$self->{channel}->{'dc'}->{'language'}.'</language>'."\n";
     } elsif ($self->{channel}->{language}) {
 	$output .= '<language>'.$self->{channel}->{language}.'</language>'."\n";
     }
@@ -528,22 +528,22 @@ sub as_rss_0_9_1 {
 	if $self->{channel}->{rating};
 	
     # copyright
-    if ($self->{channel}->{'dc:rights'}) {
-	$output .= '<copyright>'.$self->{channel}->{'dc:rights'}.'</copyright>'."\n";
+    if ($self->{channel}->{'dc'}->{'rights'}) {
+	$output .= '<copyright>'.$self->{channel}->{'dc'}->{'rights'}.'</copyright>'."\n";
     } elsif ($self->{channel}->{copyright}) {
 	$output .= '<copyright>'.$self->{channel}->{copyright}.'</copyright>'."\n";
     }
 	
     # publication date
-    if ($self->{channel}->{'dc:date'}) {
-	$output .= '<pubDate>'.$self->{channel}->{'dc:date'}.'</pubDate>'."\n";
+    if ($self->{channel}->{'dc'}->{'date'}) {
+	$output .= '<pubDate>'.$self->{channel}->{'dc'}->{'date'}.'</pubDate>'."\n";
     } elsif ($self->{channel}->{pubDate}) {
 	$output .= '<pubDate>'.$self->{channel}->{pubDate}.'</pubDate>'."\n";
     }
 	    
     # last build date
-    if ($self->{channel}->{'dc:date'}) {
-	$output .= '<lastBuildDate>'.$self->{channel}->{'dc:date'}.'</lastBuildDate>'."\n";
+    if ($self->{channel}->{'dc'}->{'date'}) {
+	$output .= '<lastBuildDate>'.$self->{channel}->{'dc'}->{'date'}.'</lastBuildDate>'."\n";
     } elsif ($self->{channel}->{lastBuildDate}) {
 	$output .= '<lastBuildDate>'.$self->{channel}->{pubDate}.'</lastBuildDate>'."\n";
     }
@@ -553,15 +553,15 @@ sub as_rss_0_9_1 {
 	if $self->{channel}->{docs};
 	
     # managing editor
-    if ($self->{channel}->{'dc:publisher'}) {
-	$output .= '<managingEditor>'.$self->{channel}->{'dc:publisher'}.'</managingEditor>'."\n";
+    if ($self->{channel}->{'dc'}->{'publisher'}) {
+	$output .= '<managingEditor>'.$self->{channel}->{'dc'}->{'publisher'}.'</managingEditor>'."\n";
     } elsif ($self->{channel}->{managingEditor}) {
 	$output .= '<managingEditor>'.$self->{channel}->{managingEditor}.'</managingEditor>'."\n";
     }
 	
     # webmaster
-    if ($self->{channel}->{'dc:creator'}) {
-	$output .= '<webMaster>'.$self->{channel}->{'dc:creator'}.'</webMaster>'."\n";
+    if ($self->{channel}->{'dc'}->{'creator'}) {
+	$output .= '<webMaster>'.$self->{channel}->{'dc'}->{'creator'}.'</webMaster>'."\n";
     } elsif ($self->{channel}->{webMaster}) {
 	$output .= '<webMaster>'.$self->{channel}->{webMaster}.'</webMaster>'."\n";
     }
@@ -689,8 +689,8 @@ sub as_rss_1_0 {
     
     # additional elements for RSS 0.91
     # language
-    if ($self->{channel}->{'dc:language'}) {
-	$output .= '<dc:language>'.$self->{channel}->{'dc:language'}.'</dc:language>'."\n";
+    if ($self->{channel}->{'dc'}->{'language'}) {
+	$output .= '<dc:language>'.$self->{channel}->{'dc'}->{'language'}.'</dc:language>'."\n";
     } elsif ($self->{channel}->{language}) {
 	$output .= '<dc:language>'.$self->{channel}->{language}.'</dc:language>'."\n";
     }
@@ -700,15 +700,15 @@ sub as_rss_1_0 {
 	#$if $self->{channel}->{rating};
 	
     # copyright
-    if ($self->{channel}->{'dc:rights'}) {
-	$output .= '<dc:rights>'.$self->{channel}->{'dc:rights'}.'</dc:rights>'."\n";
+    if ($self->{channel}->{'dc'}->{'rights'}) {
+	$output .= '<dc:rights>'.$self->{channel}->{'dc'}->{'rights'}.'</dc:rights>'."\n";
     } elsif ($self->{channel}->{copyright}) {
 	$output .= '<dc:rights>'.$self->{channel}->{copyright}.'</dc:rights>'."\n";
     }
 	
     # publication date
-    if ($self->{channel}->{'dc:date'}) {
-	$output .= '<dc:date>'.$self->{channel}->{'dc:date'}.'</dc:date>'."\n";
+    if ($self->{channel}->{'dc'}->{'date'}) {
+	$output .= '<dc:date>'.$self->{channel}->{'dc'}->{'date'}.'</dc:date>'."\n";
     } elsif ($self->{channel}->{pubDate}) {
 	$output .= '<dc:date>'.$self->{channel}->{pubDate}.'</dc:date>'."\n";
     } elsif ($self->{channel}->{lastBuildDate}) {
@@ -720,21 +720,26 @@ sub as_rss_1_0 {
 	#if $self->{channel}->{docs};
 	
     # managing editor
-    if ($self->{channel}->{'dc:publisher'}) {
-	$output .= '<dc:publisher>'.$self->{channel}->{'dc:publisher'}.'</dc:publisher>'."\n";
+    if ($self->{channel}->{'dc'}->{'publisher'}) {
+	$output .= '<dc:publisher>'.$self->{channel}->{'dc'}->{'publisher'}.'</dc:publisher>'."\n";
     } elsif ($self->{channel}->{managingEditor}) {
 	$output .= '<dc:publisher>'.$self->{channel}->{managingEditor}.'</dc:publisher>'."\n";
     }
 
     # webmaster
-    if ($self->{channel}->{'dc:creator'}) {
-	$output .= '<dc:creator>'.$self->{channel}->{'dc:creator'}.'</dc:creator>'."\n";
+    if ($self->{channel}->{'dc'}->{'creator'}) {
+	$output .= '<dc:creator>'.$self->{channel}->{'dc'}->{'creator'}.'</dc:creator>'."\n";
     } elsif ($self->{channel}->{webMaster}) {
 	$output .= '<dc:creator>'.$self->{channel}->{webMaster}.'</dc:creator>'."\n";
     }
 
     # Dublin Core module
     foreach my $dc ( keys %dc_ok_fields ) {
+	next if ($dc eq 'language'
+		 || $dc eq 'creator'
+		 || $dc eq 'publisher'
+		 || $dc eq 'rights'
+		 || $dc eq 'date');
 	$self->{channel}->{dc}->{$dc} and $output .= "<dc:$dc>".$self->{channel}->{dc}->{$dc}."</dc:$dc>\n";
     }
 
