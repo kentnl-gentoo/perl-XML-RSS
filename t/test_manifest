@@ -10,3 +10,4 @@ encoding.t
 2.0-parse.t
 2.0-generate.t
 encode-output.t
+auto_add_modules.t

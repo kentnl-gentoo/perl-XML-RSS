@@ -1,5 +1,15 @@
-# $Id: Changes,v 1.4 2003/01/18 01:18:52 comdog Exp $
+# $Id: Changes,v 1.5 2003/01/18 01:22:28 comdog Exp $
 Revision history for Perl extension XML::RSS.
+
+0.98_03 - Fri Jan 17 19:22:20 2003
+       * changed the handle_char() routine to replace data rather than
+       append to existing data.  this takes care of the doubling problem
+       in the last issue.
+ 
+       * set the RSS 2.0 namespace in the _initializer routine
+ 
+       * all tests now pass.  if this works for people, it could turn into
+       a release candidate
 
 0.98_02 - Fri Jan 17 19:15:45 2003
 	* changed the handle_char() routine to replace data rather than

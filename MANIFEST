@@ -22,6 +22,7 @@ examples/1.0/update_rss_1.0.pl
 examples/README
 examples/convert.pl
 examples/create_rss_multiple.pl
+examples/freshmeat.rdf
 examples/rss2html.pl
 examples/rss_info.pl
 examples/update_rss.pl
@@ -35,6 +36,7 @@ t/1.0-parse.t
 t/2.0-generate.t
 t/2.0-generated.xml
 t/2.0-parse.t
+t/auto_add_modules.t
 t/encode-output.t
 t/encoding.t
 t/load.t

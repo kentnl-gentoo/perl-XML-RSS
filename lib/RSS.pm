@@ -1,4 +1,4 @@
-# $Id: RSS.pm,v 1.12 2003/01/18 01:21:20 comdog Exp $
+# $Id: RSS.pm,v 1.14 2003/01/18 01:58:50 comdog Exp $
 package XML::RSS;
 
 use strict;
@@ -6,7 +6,7 @@ use Carp;
 use XML::Parser;
 use vars qw($VERSION $AUTOLOAD @ISA $modules);
 
-$VERSION = '0.98_03';
+$VERSION = '0.98_04';
 @ISA = qw(XML::Parser);
 
 my %v0_9_ok_fields = (
@@ -1564,15 +1564,30 @@ sub append {
 	return $inside;
 }
 
+sub _auto_add_modules {
+	my $self = shift;
+	
+	for my $ns (keys %{$self->{namespaces}}) {
+	   # skip default namespaces
+	   next if $ns eq "rdf" || $ns eq "#default"
+			|| exists $self->{modules}{ $self->{namespaces}{$ns} };
+	   $self->add_module(prefix => $ns, uri => $self->{namespaces}{$ns})
+	}
+	
+	$self;
+}
+
 sub parse {
     my $self = shift;
     $self->SUPER::parse(shift);
+    $self->_auto_add_modules;
     $self->{version} = $self->{_internal}->{version};
 }
 
 sub parsefile {
     my $self = shift;
     $self->SUPER::parsefile(shift);
+    $self->_auto_add_modules;
     $self->{version} = $self->{_internal}->{version};
 }
 
