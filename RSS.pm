@@ -1,5 +1,5 @@
-# 
 # Copyright (c) 2000 Jonathan Eisenzopf <eisen@pobox.com>
+#                and Rael Dornfest <rael@oreilly.com>
 # XML::RSS is free software. You can redistribute it and/or
 # modify it under the same terms as Perl itself.
 
@@ -10,7 +10,7 @@ use Carp;
 use XML::Parser;
 use vars qw($VERSION $AUTOLOAD @ISA $modules);
 
-$VERSION = '0.10';
+$VERSION = '0.95';
 @ISA = qw(XML::Parser);
 
 my %v0_9_ok_fields = (
@@ -330,6 +330,9 @@ sub _initialize {
     # namespaces
     $self->{namespaces} = {};
 
+    # modules
+    $self->{modules} = $modules;
+
     #get version info
     (exists($hash{version}))
 	? ($self->{version} = $hash{version})
@@ -371,6 +374,19 @@ sub _initialize {
 	    $self->{$i} = \%template;
         }
     }
+}
+
+sub add_module {
+    my $self = shift;
+    my $hash = {@_};
+
+    $hash->{prefix} =~ /^[a-z_][a-z0-9.-_]*$/ or 
+    croak "a namespace prefix should look like [a-z_][a-z0-9.-_]*";
+
+    $hash->{uri} or 
+    croak "a URI must be provided in a namespace declaration";
+
+	  $self->{modules}->{$hash->{uri}} = $hash->{prefix};
 }
 
 sub add_item {
@@ -651,7 +667,7 @@ sub as_rss_1_0 {
     $output .=' xmlns="http://purl.org/rss/1.0/"'."\n";
 
     # print all imported namespaces
-    while (my($k, $v) = each %$modules) {
+    while (my($k, $v) = each %{$self->{modules}}) {
 			$output.=" xmlns:$v=\"$k\"\n";
     }
 
@@ -717,15 +733,23 @@ sub as_rss_1_0 {
 	$output .= '<dc:creator>'.$self->{channel}->{webMaster}.'</dc:creator>'."\n";
     }
 
-    # dc module
+    # Dublin Core module
     foreach my $dc ( keys %dc_ok_fields ) {
 	$self->{channel}->{dc}->{$dc} and $output .= "<dc:$dc>".$self->{channel}->{dc}->{$dc}."</dc:$dc>\n";
     }
 
-    # syndication module
+    # Syndication module
     foreach my $syn ( keys %syn_ok_fields ) {
 	$self->{channel}->{syn}->{$syn} and $output .= "<syn:$syn>".$self->{channel}->{syn}->{$syn}."</syn:$syn>\n";
     }
+
+    # Ad-hoc modules
+    while ( my($url, $prefix) = each %{$self->{modules}} ) {
+      next if $prefix =~ /^(dc|syn)$/;
+      while ( my($el, $value) = each %{$self->{channel}->{$prefix}} ) {
+  		  $output .= "<$prefix:$el>".$value."</$prefix:$el>\n";
+      }
+  	}
     
     # Seq items
     $output .= "<items>\n <rdf:Seq>\n";
@@ -771,9 +795,17 @@ sub as_rss_1_0 {
 	#$output .= '<rss091:description>'.$self->{image}->{description}.'</rss091:description>'."\n"
 	#    if $self->{image}->{description};
 
-	# dc
+	# Dublin Core Modules
 	foreach my $dc ( keys %dc_ok_fields ) {
 		$self->{image}->{dc}->{$dc} and $output .= "<dc:$dc>".$self->{image}->{dc}->{$dc}."</dc:$dc>\n";
+	}
+
+  # Ad-hoc modules
+  while ( my($url, $prefix) = each %{$self->{modules}} ) {
+    next if $prefix =~ /^(dc|syn)$/;
+    while ( my($el, $value) = each %{$self->{image}->{$prefix}} ) {
+		  $output .= "<$prefix:$el>".$value."</$prefix:$el>\n";
+    }
 	}
 	
 	# end image element
@@ -790,12 +822,21 @@ sub as_rss_1_0 {
 	    $output .= '<title>'.$item->{title}.'</title>'."\n";
 	    $output .= '<link>'.$item->{'link'}.'</link>'."\n";
 	    $item->{description} and $output .= '<description>'.$item->{description}.'</description>'."\n";
-	    
+
+      # Dublin Core module	    
 	    foreach my $dc ( keys %dc_ok_fields ) {
 	    	$item->{dc}->{$dc} and $output .= "<dc:$dc>".$item->{dc}->{$dc}."</dc:$dc>\n";
 	    }
-	    
-	    # end image element
+
+      # Ad-hoc modules
+      while ( my($url, $prefix) = each %{$self->{modules}} ) {
+        next if $prefix =~ /^(dc|syn)$/;
+        while ( my($el, $value) = each %{$item->{$prefix}} ) {
+	    	  $output .= "<$prefix:$el>".$value."</$prefix:$el>\n";
+        }
+	    }
+
+	    # end item element
 	    $output .= '</item>'."\n\n";
 	}
     }
@@ -810,9 +851,17 @@ sub as_rss_1_0 {
 	$output .= '<name>'.$self->{textinput}->{name}.'</name>'."\n";
 	$output .= '<link>'.$self->{textinput}->{'link'}.'</link>'."\n";
 
-	# dc
+	# Dublin Core module
 	foreach my $dc ( keys %dc_ok_fields ) {
 	    $self->{textinput}->{dc}->{$dc} and $output .= "<dc:$dc>".$self->{textinput}->{dc}->{$dc}."</dc:$dc>\n";
+	}
+
+  # Ad-hoc modules
+  while ( my($url, $prefix) = each %{$self->{modules}} ) {
+    next if $prefix =~ /^(dc|syn)$/;
+    while ( my($el, $value) = each %{$self->{textinput}->{$prefix}} ) {
+		  $output .= "<$prefix:$el>".$value."</$prefix:$el>\n";
+    }
 	}
 
 	$output .= '</textinput>'."\n\n";
@@ -1152,6 +1201,22 @@ XML::RSS - creates and updates RSS files
    link         => "http://core.freshmeat.net/search.php3",
  );
 
+ # Optionally mixing in elements of a non-standard module/namespace
+
+ $rss->add_module(prefix=>'my', uri=>'http://purl.org/my/rss/module/');
+
+ $rss->add_item(
+   title       => "xIrc 2.4pre2" 
+   link        => "http://freshmeat.net/projects/xirc/",
+   description => "xIrc is an X11-based IRC client which ...",
+   my => {
+     rating    => "A+",
+     category  => "X11/IRC",
+   },
+ );
+
+  $rss->add_item (title=>$title, link=>$link, slash=>{ topic=>$topic });
+
  # create an RSS 0.91 file
  use XML::RSS;
  my $rss = new XML::RSS (version => '0.91');
@@ -1363,6 +1428,17 @@ method.
 Access to the B<textinput> values is the the same as B<channel()> and 
 B<image()>.
 
+=item add_module(prefix=>$prefix, uri=>$uri)
+Adds a module namespace declaration to the XML::RSS object, allowing you
+to add modularity outside of the the standard RSS 1.0 modules.  At present,
+the standard modules Dublin Core (dc) and Syndication (syn) are predefined
+for your convenience.
+
+The modules are stored in the hash %{$obj->{'modules'}} where
+B<$obj> is a reference to an XML::RSS object.
+
+For more information on RSS 1.0 Modules, read on.
+
 =head2 RSS 1.0 MODULES
 
 XML-Namespace-based modularization affords RSS 1.0 compartmentalized 
@@ -1399,18 +1475,33 @@ XML::RSS is via either the prefix or namespace URI for your convenience.
 
   print $rss->{items}->[0]->{'http://purl.org/dc/elements/1.1/'}->{subject};
 
-For future extensibility, XML::RSS will grab elements of other namespaces 
-which appear in an RSS 1.0 document.  They are not, however, currently
-accessible via a simple prefix; access them via their namespace URL like so:
+XML::RSS also has support for "non-standard" RSS 1.0 modularization at
+the channel, image, item, and textinput levels.  Parsing an RSS document
+grabs any elements of other namespaces which might appear.  XML::RSS
+also allows the inclusion of arbitrary namespaces and associated elements 
+when building  RSS documents.
 
-  print $rss->{items}->[0]->{'http://purl.org/foo/elements/0.0/'}->{bar};
+For example, to add elements of a made-up "My" module, first declare the 
+namespace by associating a prefix with a URI:
 
-XML::RSS does not at this time support insertion of non-standard module
-data into created RSS documents.
+  $rss->add_module(prefix=>'my', uri=>'http://purl.org/my/rss/module/');
+
+Then proceed as usual:
+
+  $rss->add_item (title=>$title, link=>$link, my=>{ rating=>$rating });
+
+Non-standard namespaces are not, however, currently accessible via a simple 
+prefix; access them via their namespace URL like so:
+
+  print $rss->{items}->[0]->{'http://purl.org/my/rss/module/'}->{rating};
+
+XML::RSS will continue to provide built-in support for standard RSS 1.0
+modules as they appear.
 
 =head1 AUTHOR
 
 Jonathan Eisenzopf <eisen@pobox.com>
+Rael Dornfest <rael@oreilly.com>
 
 =head1 CREDITS
 
@@ -1419,7 +1510,6 @@ Jonathan Eisenzopf <eisen@pobox.com>
  Jim Hebert <jim@cosource.com>
  Randal Schwartz <merlyn@stonehenge.com>
  rjp@browser.org
- Rael Dornfest <rael@oreilly.com>
 
 =head1 SEE ALSO
 

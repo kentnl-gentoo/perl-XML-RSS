@@ -1,9 +1,9 @@
-Copyright (c) 2000 Jonathan Eisenzopf. All rights reserved.
+Copyright (c) 2000 Jonathan Eisenzopf and Rael Dornfest. All rights reserved.
 This package is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
 
 NAME
-XML::RSS Version 0.10
+XML::RSS Version 0.95
 
 DESCRIPTION
 This module was created to help those who need to manage
@@ -15,8 +15,8 @@ See http://my.netscape.com/publish/help/mnn20/quickstart.html
 for information on RSS 0.91. See http://my.netscape.com/publish/help/
 for RSS 0.9 and http://purl.org/rss/1.0/.
 
-Feel free to contact me at eisen@pobox.com if you have 
-problems and/or suggestions.
+Feel free to contact us at eisen@pobox.com or rael@oreilly.com
+if you have problems and/or suggestions.
 
 REQUIREMENTS
 This module requires version 2.23 or greater of the XML::Parser module.

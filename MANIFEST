@@ -26,3 +26,4 @@ examples/0.91/xmlnews.rdf
 examples/1.0/create_rss_1.0.pl
 examples/1.0/update_rss_1.0.pl
 examples/1.0/rss1.0.rdf
+examples/1.0/slash.rdf
