@@ -4,4 +4,5 @@ Revision history for Perl extension XML::RSS.
 	- original version; created by h2xs 1.19
 0.2  Sat Jul 24 21:12:22 EDT 1999
 	- added documentation
-
+0.3  Tue Aug 24 05:14:18 EDT 1999
+	- added support for RSS 0.91

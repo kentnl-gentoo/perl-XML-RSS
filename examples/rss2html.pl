@@ -13,29 +13,29 @@ sub print_html {
     my $rss = shift;
     print <<HTML;
 <html>
-<head><title>$rss->{rss}->{'channel'}->{'title'}</title></head>
+<head><title>$rss->{'channel'}->{'title'}</title></head>
 <body>
 <h2>
-<a href="$rss->{rss}->{'image'}->{'link'}">
-<img src="$rss->{rss}->{'image'}->{'url'}" alt="$rss->{rss}->{'image'}->{'title'}" border="0">
+<a href="$rss->{'image'}->{'link'}">
+<img src="$rss->{'image'}->{'url'}" alt="$rss->{'image'}->{'title'}" border="0">
 </a>
-<a href="$rss->{rss}->{'channel'}->{'link'}">$rss->{rss}->{'channel'}->{'title'}: </a>
-$rss->{rss}->{'channel'}->{'description'}
+<a href="$rss->{'channel'}->{'link'}">$rss->{'channel'}->{'title'}: </a>
+$rss->{'channel'}->{'description'}
 </h2>
 HTML
 
-    foreach my $item (@{$rss->{rss}->{'items'}}) {
+    foreach my $item (@{$rss->{'items'}}) {
 	next unless defined($item->{'title'}) && defined($item->{'link'});
 	print "<a href=\"$item->{'link'}\">$item->{'title'}</a><BR>\n";
     }
 }
 
-if (defined($rss->{rss}->{'textinput'})) {
+if (defined($rss->{'textinput'})) {
     print <<HTML;
-<form method="get" action="$rss->{rss}->{'textinput'}->{'link'}">
-$rss->{rss}->{'textinput'}->{'description'}<BR>
-<B>$rss->{rss}->{'textinput'}->{'title'}: 
-<input type="text" name="$rss->{rss}->{'textinput'}->{'name'}">
+<form method="get" action="$rss->{'textinput'}->{'link'}">
+$rss->{'textinput'}->{'description'}<BR>
+<B>$rss->{'textinput'}->{'title'}: 
+<input type="text" name="$rss->{'textinput'}->{'name'}">
 </form>
 HTML
 }

@@ -1,9 +1,11 @@
 #!/usr/bin/perl -w
-use lib '.';
+# create_rss.pl
+# creates and prints RSS 0.9 file
+
 use strict;
 use XML::RSS;
 
-my $rss = new XML::RSS;
+my $rss = new XML::RSS(version => '0.9');
 $rss->channel(title => "freshmeat.net",
 	      link  => "http://freshmeat.net",
 	      description => "the one-stop-shop for all your Linux software needs"
@@ -28,5 +30,5 @@ $rss->textinput(title => "quick finder",
 		link => "http://core.freshmeat.net/search.php3"
 		);
 
-#print $rss->as_string;
-$rss->save("fm.rdf");
+print $rss->as_string;
+#$rss->save("fm.rdf");

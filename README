@@ -3,30 +3,17 @@ This package is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
 
 NAME
-XML::RSS Version 0.1
+XML::RSS Version 0.3
 
 DESCRIPTION
 This module was created to help those who need to manage
 RDF Site Summary (RSS) files. It makes quick work of
-creating, updating, and saving RSS files. It adheres to
-the specification as it appears at:
-http://my.netscape.com/publish/help/quickstart.html
-which is actually quite useless since the site doesn't provide
-a link to grab the official RDF schema. 
+creating, updating, and saving RSS files.
 
-Furthermore, unless someone can prove me wrong, RSS is not
-really XML, even though the above URL leads you to this
-conclusion. I say this for 3 reasons:
-1. The site states that RSS doesn't support UTF-8, a requirement
-for well-formed XML.
-2. The spec allows any of the HTML entities, but I haven't found
-and external or internal entity declarations. So, if you put them
-in, XML::Parser will croak.
-3. It doesn't allow CDATA sections.
-
-So, if you want to use this module, you must not use any HTML
-entities. If you have some ideas on how to get around this,
-please let me know.
+XML::RSS currently supports both version 0.9 and 0.91 of RSS.
+See http://my.netscape.com/publish/help/mnn20/quickstart.html
+for information on RSS 0.91. See http://my.netscape.com/publish/help/
+for RSS 0.9.
 
 Feel free to contact me at eisen@pobox.com if you have 
 problems and/or suggestions.
@@ -40,4 +27,15 @@ perl Makefile.PL
 make
 make install
 
-CREDITS
+LIMITATIONS
+-XML::RSS doesn't yet validate that the required elements exist before it
+ generates the RSS file.
+-Ignores the encoding defined in the XML declaration when using parse()
+ or parsefile(). This is not intentional, I just haven't been able to
+ get it to work yet.
+-Same problem with the RSS version attribute as with encoding.
+ 
+TROUBLESHOOTING
+-If you get an error when using the parse() or parsefile() methods, your
+RSS file is probably not valid XML. You must be sure to encode all XML
+default entities.
