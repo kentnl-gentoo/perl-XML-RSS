@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.4 2003/01/17 20:52:47 comdog Exp $
+# $Id: Makefile.PL,v 1.5 2003/01/27 21:51:47 comdog Exp $
 use ExtUtils::MakeMaker;
 @extras = ();
 
@@ -29,10 +29,7 @@ WriteMakefile(
 		},
     'PREREQ_PM'            => { 
 		'Test::Manifest'   => '0.9',
-		'File::Find::Rule' => '0',
 		'Test::More'       => '0',
-		'Test::Pod'        => '0',
-		'Test::Prereq'     => '0.18',
     	'XML::Parser'      => '2.23', 
     	},
 	'MAN3PODS'		       => {

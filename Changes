@@ -1,5 +1,9 @@
-# $Id: Changes,v 1.5 2003/01/18 01:22:28 comdog Exp $
+# $Id: Changes,v 1.6 2003/01/18 02:01:46 comdog Exp $
 Revision history for Perl extension XML::RSS.
+
+0.98_04 - Fri Jan 17 20:00:29 2003
+	* the parse and parsefile routines now automatically add non-
+	standard namespace to the modules list
 
 0.98_03 - Fri Jan 17 19:22:20 2003
        * changed the handle_char() routine to replace data rather than

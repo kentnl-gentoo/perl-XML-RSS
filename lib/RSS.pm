@@ -1,13 +1,15 @@
-# $Id: RSS.pm,v 1.14 2003/01/18 01:58:50 comdog Exp $
+# $Id: RSS.pm,v 1.15 2003/01/27 21:51:23 comdog Exp $
 package XML::RSS;
 
 use strict;
 use Carp;
 use XML::Parser;
-use vars qw($VERSION $AUTOLOAD @ISA $modules);
+use vars qw($VERSION $AUTOLOAD @ISA $modules $AUTO_ADD);
 
-$VERSION = '0.98_04';
+$VERSION = '0.98_05';
 @ISA = qw(XML::Parser);
+
+$AUTO_ADD = 0;
 
 my %v0_9_ok_fields = (
     channel => {
@@ -1580,14 +1582,14 @@ sub _auto_add_modules {
 sub parse {
     my $self = shift;
     $self->SUPER::parse(shift);
-    $self->_auto_add_modules;
+    $self->_auto_add_modules if $AUTO_ADD;
     $self->{version} = $self->{_internal}->{version};
 }
 
 sub parsefile {
     my $self = shift;
     $self->SUPER::parsefile(shift);
-    $self->_auto_add_modules;
+    $self->_auto_add_modules if $AUTO_ADD;
     $self->{version} = $self->{_internal}->{version};
 }
 
@@ -2029,9 +2031,15 @@ is for B<channel()>.
 
 Parses an RDF Site Summary which is passed into B<parse()> as the first parameter.
 
+See the add_module() method for instructions on automatically adding
+modules as a string is parsed.
+
 =item parsefile ($file)
 
 Same as B<parse()> except it parses a file rather than a string.
+
+See the add_module() method for instructions on automatically adding
+modules as a string is parsed.
 
 =item save ($file)
 
@@ -2077,7 +2085,9 @@ for your convenience. The Taxonomy (taxo) module is also internally supported.
 The modules are stored in the hash %{$obj->{'modules'}} where
 B<$obj> is a reference to an XML::RSS object.
 
-For more information on RSS 1.0 Modules, read on.
+If you want to automatically add modules that the parser finds in
+namespaces, set the $XML::RSS::AUTO_ADD variable to a true value.  By
+default the value is false.
 
 =back
 
@@ -2149,20 +2159,23 @@ This source is part of a SourceForge project which always has the
 latest sources in CVS, as well as all of the previous releases.
 
 	https://sourceforge.net/projects/perl-rss/
+	http://perl-rss.sourceforge.net
 
 If, for some reason, I disappear from the world, one of the other
 members of the project can shepherd this module appropriately.
 
 =head1 AUTHOR
 
-Jonathan Eisenzopf <eisen@pobox.com>
-Rael Dornfest <rael@oreilly.com>
+	Original code: Jonathan Eisenzopf <eisen@pobox.com>
+	Further changes: Rael Dornfest <rael@oreilly.com>
+	
+	Currently: perl-rss project (http://perl-rss.sourceforge.net)
+
 
 =head1 COPYRIGHT
 
 Copyright (c) 2001 Jonathan Eisenzopf <eisen@pobox.com>
 and Rael Dornfest <rael@oreilly.com>
-
 
 XML::RSS is free software. You can redistribute it and/or
 modify it under the same terms as Perl itself.
@@ -2176,6 +2189,9 @@ modify it under the same terms as Perl itself.
  rjp@browser.org
  Kellan <kellan@protest.net>
  Rafe Colburn <rafe@rafe.us>
+ Adam Trickett <adam.trickett@btinternet.com>
+ Aaron Straup Cope <asc@vineyard.net>
+ Ian Davis <iand@internetalchemy.org>
 
 =head1 SEE ALSO
 

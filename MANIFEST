@@ -34,7 +34,6 @@ t/1.0-generate.t
 t/1.0-parse-exotic.t
 t/1.0-parse.t
 t/2.0-generate.t
-t/2.0-generated.xml
 t/2.0-parse.t
 t/auto_add_modules.t
 t/encode-output.t

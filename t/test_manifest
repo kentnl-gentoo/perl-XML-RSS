@@ -1,6 +1,3 @@
-load.t
-pod.t
-prereq.t
 version.t
 encoding.t
 0.9-parse.t
@@ -10,4 +7,3 @@ encoding.t
 2.0-parse.t
 2.0-generate.t
 encode-output.t
-auto_add_modules.t
