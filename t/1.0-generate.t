@@ -72,8 +72,6 @@ ok($rss->add_item(
 			  },
 		 ),"Set one RSS item");
 
-my $len = length($rss->as_string());
-ok($len,"RSS feed has '$len' characters");
 
 ok($rss->add_module(prefix=>RSS_MOD_PREFIX,uri=>RSS_MOD_URI),
    "Added namespace:".RSS_MOD_PREFIX);
@@ -87,6 +85,9 @@ cmp_ok($rss->{modules}->{$uri},
        "eq",
        RSS_MOD_PREFIX,
        "Namespace URI is ".RSS_MOD_URI);
+
+my $len = length($rss->as_string());
+ok($len,"RSS feed has '$len' characters");
 
 ok($rss->save(RSS_SAVEAS),
    "Wrote to disk: ".RSS_SAVEAS);
@@ -144,11 +145,11 @@ Tests for generating RSS 1.0 data with XML::RSS.pm
 
 =head1 VERSION
 
-$Revision: 1.4 $
+$Revision: 1.5 $
 
 =head1 DATE
 
-$Date: 2003/02/01 17:10:10 $
+$Date: 2003/02/20 17:12:45 $
 
 =head1 AUTHOR
 

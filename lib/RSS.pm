@@ -1,4 +1,4 @@
-# $Id: RSS.pm,v 1.20 2003/02/03 21:45:44 comdog Exp $
+# $Id: RSS.pm,v 1.22 2003/02/20 19:19:07 kellan Exp $
 package XML::RSS;
 
 use strict;
@@ -6,7 +6,7 @@ use Carp;
 use XML::Parser;
 use vars qw($VERSION $AUTOLOAD @ISA $modules $AUTO_ADD);
 
-$VERSION = '1.01';
+$VERSION = '1.02';
 @ISA = qw(XML::Parser);
 
 $AUTO_ADD = 0;
@@ -1769,14 +1769,26 @@ my $entities = join('|', keys %entity);
 sub encode {
 	my ($self, $text) = @_;
 	return $text unless $self->{'encode_output'};
+	
+	my $encoded_text = '';
+	
+	while ( $text =~ s/(.*?)(\<\!\[CDATA\[.*?\]\]\>)//s ) {
+		$encoded_text .= encode_text($1) . $2;
+	}
+	$encoded_text .= encode_text($text);
 
+	return $encoded_text;
+}
+
+sub encode_text {
+	my $text = shift;
+	
 	$text =~ s/&(?!(#[0-9]+|#x[0-9a-fA-F]+|\w+);)/&amp;/g;
     $text =~ s/&($entities);/$entity{$1}/g;
     $text =~ s/</&lt;/g;
 
 	return $text;
 }
-
 
 1;
 __END__

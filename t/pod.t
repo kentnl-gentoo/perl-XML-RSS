@@ -1,14 +1,24 @@
-# $Id: pod.t,v 1.1 2002/11/12 08:19:48 comdog Exp $
+# $Id: pod.t,v 1.2 2003/02/20 17:12:46 kellan Exp $
+
 BEGIN {
-	use File::Find::Rule;
-	@files = File::Find::Rule->file()->name( '*.pm' )->in( 'blib/lib' );
-	}
+	use File::Find;
+	@files = ();
+	find(sub { push @files, $File::Find::name if $_ =~ m/\.pm$/;}, 
+		('blib/lib') 
+	);
+}
 
-use Test::More tests => scalar @files;
-use Test::Pod;
+use Test::More;
 
-foreach my $file ( @files )
-	{
+eval "require Test::Pod";
+if ($@) {
+	plan skip_all => "Test::Pod is missing";	
+}
+else {
+	tests => scalar @files;
+}
+
+foreach my $file ( @files ) {
 	pod_ok( $file );
-	}
+}
 

@@ -1,7 +1,9 @@
 use strict;
 
 use Test::More;
-plan tests => "none";
+plan tests => 1;
+
+ok(1, "More tests soon");
 
 __END__
 
@@ -20,11 +22,11 @@ Tests for generating RSS 0.90 data with XML::RSS.pm
 
 =head1 VERSION
 
-$Revision: 1.1 $
+$Revision: 1.2 $
 
 =head1 DATE
 
-$Date: 2002/11/20 00:02:52 $
+$Date: 2003/02/20 17:12:44 $
 
 =head1 AUTHOR
 

@@ -1,5 +1,18 @@
-# $Id: Changes,v 1.8 2003/01/31 17:29:09 comdog Exp $
+# $Id: Changes,v 1.9 2003/02/03 21:55:25 comdog Exp $
 Revision history for Perl extension XML::RSS.
+
+1.02 - Mon Feb 20 15:34:21 2003
+        * fixed bug in encode().  encode() did not respect CDATA
+        sections and would mangle them when encountered.  now behaves
+        properly (we hope) even when CDATA and #PCDATA are mixed
+        together liberally
+
+1.01 - Mon Feb  3 15:46:25 2003
+	* fixed bug with handle_char().  i (brian d foy) mis-diagnosed a
+	previous bug and broke handle_char() when what I should have done
+	was initialise the object for each call to parse*()
+
+	* if you have version 1.0, you should upgrade to this version, 1.01
 
 1.00 - Fri Jan 31 11:26:41 2003
 	* the as_string method now encodes special characters. valid output!
