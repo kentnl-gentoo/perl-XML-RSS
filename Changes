@@ -1,5 +1,10 @@
-# $Id: Changes,v 1.6 2003/01/18 02:01:46 comdog Exp $
+# $Id: Changes,v 1.7 2003/01/27 21:55:44 comdog Exp $
 Revision history for Perl extension XML::RSS.
+
+0.98_05 - Mon Jan 27 15:54:32 2003
+	* The auto add_feature is not controlled by the $AUTO_ADD variable
+	and is off by default
+	* removed the distribution tests now that it is ready to distribute
 
 0.98_04 - Fri Jan 17 20:00:29 2003
 	* the parse and parsefile routines now automatically add non-

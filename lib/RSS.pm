@@ -1,4 +1,4 @@
-# $Id: RSS.pm,v 1.15 2003/01/27 21:51:23 comdog Exp $
+# $Id: RSS.pm,v 1.17 2003/01/31 17:19:22 comdog Exp $
 package XML::RSS;
 
 use strict;
@@ -6,7 +6,7 @@ use Carp;
 use XML::Parser;
 use vars qw($VERSION $AUTOLOAD @ISA $modules $AUTO_ADD);
 
-$VERSION = '0.98_05';
+$VERSION = '1.00';
 @ISA = qw(XML::Parser);
 
 $AUTO_ADD = 0;
@@ -1995,7 +1995,8 @@ B<$obj> is a reference to an XML::RSS object.
 
 =item as_string;
 
-Returns a string containing the RSS for the XML::RSS object.
+Returns a string containing the RSS for the XML::RSS object.  This
+method will also encode special characters along the way.
 
 =item channel (title=>$title, link=>$link, description=>$desc,
 language=>$language, rating=>$rating, copyright=>$copyright,
