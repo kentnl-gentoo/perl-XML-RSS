@@ -16,11 +16,16 @@ sub print_html {
 <head><title>$rss->{'channel'}->{'title'}</title></head>
 <body>
 <h2>
+HTML
+    if ($rss->{'image'}->{'link'}) {
+	print <<HTML;
 <a href="$rss->{'image'}->{'link'}">
 <img src="$rss->{'image'}->{'url'}" alt="$rss->{'image'}->{'title'}" border="0">
 </a>
-<a href="$rss->{'channel'}->{'link'}">$rss->{'channel'}->{'title'}: </a>
-$rss->{'channel'}->{'description'}
+HTML
+    print <<HTML;
+<a href="$rss->{'channel'}->{'link'}">$rss->{'channel'}->{'title'}</a></h3>
+<H3>$rss->{'channel'}->{'description'}</H3>
 </h2>
 HTML
 
@@ -30,7 +35,7 @@ HTML
     }
 }
 
-if (defined($rss->{'textinput'})) {
+if ($rss->{'textinput'}->{'title'}) {
     print <<HTML;
 <form method="get" action="$rss->{'textinput'}->{'link'}">
 $rss->{'textinput'}->{'description'}<BR>
@@ -40,4 +45,10 @@ $rss->{'textinput'}->{'description'}<BR>
 HTML
 }
 
+    if ($rss->{'channel'}->{'copyright'}) {
+	print <<HTML;
+<p>$rss->{'channel'}->{'copyright'}</p>
+HTML
+    }
+}
 print "</body></html>";

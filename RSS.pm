@@ -10,7 +10,7 @@ use Carp;
 use XML::Parser;
 use vars qw($VERSION $AUTOLOAD @ISA);
 
-$VERSION = '0.03';
+$VERSION = '0.04';
 @ISA = qw(XML::Parser);
 
 my %v0_9_ok_fields = (
@@ -527,7 +527,7 @@ sub handle_start {
     my %attribs = @_;
     
     if ($el eq 'rss') {
-	print "VERSION: $attribs{version}\n";
+	#print "VERSION: $attribs{version}\n";
 	$self->{version} = $attribs{version} if exists($attribs{version});
     } elsif ($el eq 'rdf:RDF') {
 	#print "VERSION: 0.9\n";

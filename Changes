@@ -6,3 +6,5 @@ Revision history for Perl extension XML::RSS.
 	- added documentation
 0.3  Tue Aug 24 05:14:18 EDT 1999
 	- added support for RSS 0.91
+0.4 - removed extraneous print
+    - added stuff in examples/rss2html.pl
