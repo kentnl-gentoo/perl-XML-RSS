@@ -2,11 +2,11 @@ package XML::RSS;
 use strict;
 use Carp;
 use XML::Parser;
-use HTML::Entities qw(encode_entities);
+use HTML::Entities qw(encode_entities_numeric encode_entities);
 use vars qw($VERSION $AUTOLOAD $modules $AUTO_ADD);
 use base qw(XML::Parser);
 
-$VERSION = '1.11';
+$VERSION = '1.12';
 
 $AUTO_ADD = 0;
 
@@ -407,6 +407,10 @@ my %rdf_resource_fields = (
 	'http://my.theinfo.org/changed/1.0/rss/' => {
 		'server' => 1
 	}
+);
+
+my %empty_ok_elements = (
+    enclosure => 1,
 );
 
 sub new {
@@ -1555,6 +1559,9 @@ sub handle_start {
 			}
 		}
 	}
+    elsif ( $empty_ok_elements{$el} and $self->current_element eq 'item' ){
+        $self->{items}->[$self->{num_items}-1]->{$el} = \%attribs;
+    }
 }
 
 sub append {
@@ -1684,9 +1691,11 @@ sub encode {
 	my $encoded_text = '';
 	
 	while ( $text =~ s/(.*?)(\<\!\[CDATA\[.*?\]\]\>)//s ) {
+                # we use &named; entities here because it's HTML
 		$encoded_text .= encode_entities($1) . $2;
 	}
-	$encoded_text .= encode_entities($text);
+        # we use numeric entities here because it's XML
+	$encoded_text .= encode_entities_numeric($text);
 
 	return $encoded_text;
 }
@@ -2110,6 +2119,7 @@ modify it under the same terms as Perl itself.
  Ian Davis <iand@internetalchemy.org>
  rayg@varchars.com
  Kellan Elliott-McCrea <kellan@protest.net>
+ Shlomi Fish <shlomif@iglu.org.il>
 
 =head1 SEE ALSO
 
