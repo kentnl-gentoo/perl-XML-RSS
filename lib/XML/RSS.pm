@@ -9,7 +9,7 @@ use DateTime::Format::W3CDTF;
   
 use vars qw($VERSION $AUTOLOAD @ISA $AUTO_ADD);
 
-$VERSION = '1.20';
+$VERSION = '1.21';
 
 $AUTO_ADD = 0;
 
@@ -43,10 +43,10 @@ my %v0_9_1_ok_fields = (
 		description    => '',
 		docs           => undef,
 		language       => undef,
-		lastBuildDate  => '',
+		lastBuildDate  => undef,
 		'link'         => '',
 		managingEditor => undef,
-		pubDate        => '',
+		pubDate        => undef,
 		rating         => undef,
 		webMaster      => undef,
 		},
@@ -116,8 +116,8 @@ my %v2_0_ok_fields = (
         copyright      => undef,
         managingEditor => undef,
         webMaster      => undef,
-        pubDate        => '',
-        lastBuildDate  => '',
+        pubDate        => undef,
+        lastBuildDate  => undef,
         category       => undef,
         generator      => undef,
         docs           => undef,
@@ -483,6 +483,12 @@ sub _initialize {
 	? ($self->{encoding} = $hash{encoding})
 	    : ($self->{encoding} = 'UTF-8');
 
+    # stylesheet
+    if (exists($hash{stylesheet}))
+    {
+        $self->{stylesheet} = $hash{stylesheet};
+    }
+
     # initialize RSS data structure
     # RSS version 0.9
     if ($self->{version} eq '0.9') {
@@ -542,6 +548,18 @@ sub _out_tag
     return $self->_out(
         "<$tag>" . $self->_encode($inner) . "</$tag>\n"
     );
+}
+
+sub _out_defined_tag
+{
+    my ($self, $tag, $inner) = @_;
+
+    if (defined($inner))
+    {
+        $self->_out_tag($tag, $inner);
+    }
+
+    return;
 }
 
 sub _out_inner_tag
@@ -692,6 +710,13 @@ sub _date_from_dc_date
     return $f->parse_datetime($string);
 }
 
+sub _date_from_rss2
+{
+    my ($self, $string) = @_;
+    my $f = DateTime::Format::Mail->new();
+    return $f->parse_datetime($string);
+}
+
 sub _date_to_rss2
 {
     my ($self, $date) = @_;
@@ -700,31 +725,134 @@ sub _date_to_rss2
     return $pf->format_datetime($date); 
 }
 
-sub _calc_lastBuildDate
+sub _date_to_dc_date
 {
-    my $self = shift;
-    return
-        exists($self->{channel}->{'dc'}->{'date'}) ?
-            $self->_date_to_rss2(
-                $self->_date_from_dc_date($self->{channel}->{'dc'}->{date})
-            ) :
-        exists($self->{channel}->{lastBuildDate}) ?
-            $self->{channel}->{lastBuildDate} :
-            undef
-        ;
+    my ($self, $date) = @_;
+
+    my $pf = DateTime::Format::W3CDTF->new();
+    return $pf->format_datetime($date); 
 }
 
-sub _tag_if_valid
+sub _calc_lastBuildDate_2_0
 {
-    my ($self, $tag, $value) = @_;
-    if (defined($value))
+    my $self = shift;
+    if (defined($self->{channel}->{'dc'}->{'date'}))
     {
-        return "<$tag>$value</$tag>\n";
+        return
+            $self->_date_to_rss2(
+                $self->_date_from_dc_date($self->{channel}->{'dc'}->{date})
+            );
+    }
+    elsif (defined($self->{channel}->{lastBuildDate}))
+    {
+        return $self->{channel}->{lastBuildDate};
     }
     else
     {
-        return "";
+        return undef;
     }
+}
+
+sub _calc_lastBuildDate_0_9_1
+{
+    my $self = shift;
+    if (defined($self->{channel}->{lastBuildDate}))
+    {
+        return $self->{channel}->{lastBuildDate};
+    }
+    elsif (defined($self->{channel}->{'dc'}->{'date'}))
+    {
+        return
+            $self->_date_to_rss2(
+                $self->_date_from_dc_date($self->{channel}->{'dc'}->{date})
+            );
+    }
+    else
+    {
+        return undef;
+    }
+}
+
+sub _calc_pubDate
+{
+    my $self = shift;
+
+    if (defined($self->{channel}->{pubDate}))
+    {
+        return $self->{channel}->{pubDate};
+    }
+    elsif (defined($self->{channel}->{'dc'}->{'date'}))
+    {
+        return
+            $self->_date_to_rss2(
+                $self->_date_from_dc_date($self->{channel}->{'dc'}->{date})
+            );
+    }
+    else
+    {
+        return undef;
+    }
+}
+
+sub _get_other_dc_date
+{
+    my $self = shift;
+
+    if (defined($self->{channel}->{pubDate}))
+    {
+        return $self->{channel}->{pubDate};
+    }
+    elsif (defined($self->{channel}->{lastBuildDate}))
+    {
+        return $self->{channel}->{lastBuildDate};
+    }
+    else
+    {
+        return undef;
+    }
+}
+
+sub _calc_dc_date
+{
+    my $self = shift;
+
+    if (defined($self->{channel}->{'dc'}->{'date'}))
+    {
+        return $self->{channel}->{'dc'}->{'date'};
+    }
+    else
+    {
+        my $date = $self->_get_other_dc_date();
+
+        if (!defined($date))
+        {
+            return undef;
+        }
+        else
+        {
+            return $self->_date_to_dc_date(
+                $self->_date_from_rss2(
+                    $date
+                )
+            );
+        }
+    }
+}
+
+sub _output_xml_declaration
+{
+    my $self = shift;
+
+    $self->_out('<?xml version="1.0" encoding="'.$self->{encoding}.'"?>'."\n");
+    if (defined($self->{stylesheet}))
+    {
+        my $style_url = $self->_encode($self->{stylesheet});
+        $self->_out(qq{<?xml-stylesheet type="text/xsl" href="$style_url"?>\n});
+    }
+
+    $self->_out("\n");
+
+    return undef;
 }
 
 sub as_rss_0_9 {
@@ -733,9 +861,7 @@ sub as_rss_0_9 {
 
     $self->_set_output_var(\$output);
 
-    # XML declaration
-    my $encoding = exists $$self{encoding} ? qq| encoding="$$self{encoding}"| : '';
-    $output .= qq|<?xml version="1.0"$encoding?>\n\n|;
+    $self->_output_xml_declaration();
 
     # RDF root element
     $output .= '<rdf:RDF'."\n".'xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"'."\n";
@@ -856,8 +982,8 @@ sub as_rss_0_9_1 {
     my $output;
 
     $self->_set_output_var(\$output);
-    # XML declaration
-    $output .= '<?xml version="1.0" encoding="'.$self->{encoding}.'"?>'."\n\n";
+
+    $self->_output_xml_declaration();
 
     # DOCTYPE
     $output .= '<!DOCTYPE rss PUBLIC "-//Netscape Communications//DTD RSS 0.91//EN"'."\n";
@@ -882,18 +1008,10 @@ sub as_rss_0_9_1 {
     }
 
     # publication date
-    if ($self->{channel}->{pubDate}) {
-	$output .= '<pubDate>'. $self->_encode($self->{channel}->{pubDate}) .'</pubDate>'."\n";
-    } elsif ($self->{channel}->{'dc'}->{'date'}) {
-	$output .= '<pubDate>'. $self->_encode($self->{channel}->{'dc'}->{'date'}) .'</pubDate>'."\n";
-    }
+    $self->_out_defined_tag("pubDate",$self->_calc_pubDate());
 
     # last build date
-    if ($self->{channel}->{lastBuildDate}) {
-	$output .= '<lastBuildDate>'. $self->_encode($self->{channel}->{lastBuildDate}) .'</lastBuildDate>'."\n";
-    } elsif ($self->{channel}->{'dc'}->{'date'}) {
-	$output .= '<lastBuildDate>'. $self->_encode($self->{channel}->{'dc'}->{'date'}) .'</lastBuildDate>'."\n";
-    }
+    $self->_out_defined_tag("lastBuildDate",$self->_calc_lastBuildDate_0_9_1());
 
     # external CDF URL
     $self->_output_multiple_tags({ext => "channel", 'defined' => 1}, ["docs"]);
@@ -983,8 +1101,7 @@ sub as_rss_1_0 {
 
     $self->_set_output_var(\$output);
 
-    # XML declaration
-    $output .= '<?xml version="1.0" encoding="'.$self->{encoding}.'"?>'."\n\n";
+    $self->_output_xml_declaration();
 
     # RDF namespaces declaration
     $output .="<rdf:RDF"."\n";
@@ -1030,13 +1147,7 @@ sub as_rss_1_0 {
     }
 
     # publication date
-    if ($self->{channel}->{'dc'}->{'date'}) {
-	$output .= '<dc:date>'.  $self->_encode($self->{channel}->{'dc'}->{'date'}) .'</dc:date>'."\n";
-    } elsif ($self->{channel}->{pubDate}) {
-	$output .= '<dc:date>'.  $self->_encode($self->{channel}->{pubDate}) .'</dc:date>'."\n";
-    } elsif ($self->{channel}->{lastBuildDate}) {
-	$output .= '<dc:date>'.  $self->_encode($self->{channel}->{lastBuildDate}) .'</dc:date>'."\n";
-    }
+    $self->_out_defined_tag("dc:date",$self->_calc_dc_date());
 
     # external CDF URL
     #$output .= '<rss091:docs>'.$self->{channel}->{docs}.'</rss091:docs>'."\n"
@@ -1214,9 +1325,9 @@ sub as_rss_1_0 {
 				if ( exists( $rdf_resource_fields{ $url } ) and
 					 exists( $rdf_resource_fields{ $url }{ $el }) )
 				{
-					$output .= qq!<$prefix:$el rdf:resource="! .
+					$output .= qq{<$prefix:$el rdf:resource="} .
 							   $self->_encode($value) .
-							   qq!" />\n!;
+							   qq{" />\n};
 				}
 				else {
 					$output .= "<$prefix:$el>".  $self->_encode($value) ."</$prefix:$el>\n";
@@ -1265,8 +1376,8 @@ sub as_rss_2_0 {
     my $output;
 
     $self->_set_output_var(\$output);
-    # XML declaration
-    $output .= '<?xml version="1.0" encoding="'.$self->{encoding}.'"?>'."\n\n";
+
+    $self->_output_xml_declaration();
 
     # DOCTYPE
     # $output .= '<!DOCTYPE rss PUBLIC "-//Netscape Communications//DTD RSS 0.91//EN"'."\n";
@@ -1294,13 +1405,9 @@ sub as_rss_2_0 {
     }
 
     # publication date
-    if ($self->{channel}->{pubDate}) {
-      $output .= '<pubDate>'.$self->_encode($self->{channel}->{pubDate}).'</pubDate>'."\n";
-    } elsif ($self->{channel}->{'dc'}->{'date'}) {
-        $output .= '<pubDate>'.$self->_encode($self->{channel}->{'dc'}->{'date'}).'</pubDate>'."\n";
-    } 
+    $self->_out_defined_tag("pubDate",$self->_calc_pubDate());
 
-    $output .= $self->_tag_if_valid("lastBuildDate",$self->_calc_lastBuildDate());
+    $self->_out_defined_tag("lastBuildDate",$self->_calc_lastBuildDate_2_0());
 
     # external CDF URL
     $self->_output_multiple_tags({ext => "channel", 'defined' => 1}, ["docs"]);
@@ -1471,9 +1578,7 @@ sub as_string {
 }
 
 sub handle_char {
-	# removed assumption that RSS is the default namespace - kellan, 11/5/02
-
-	my ($self,$cdata) = (@_);
+    my ($self,$cdata) = (@_);
 	
     # image element
     if (
@@ -2054,7 +2159,7 @@ including news headlines, threaded measages, products catalogs, etc.
 =over 4
 
 =item new XML::RSS (version=>$version, encoding=>$encoding,
-output=>$output)
+output=>$output, stylesheet=>$stylesheet_url)
 
 Constructor for XML::RSS. It returns a reference to an XML::RSS object.
 You may also pass the RSS version and the XML encoding to use. The default
@@ -2062,7 +2167,12 @@ B<version> is 1.0. The default B<encoding> is UTF-8. You may also specify
 the B<output> format regarless of the input version. This comes in handy
 when you want to convert RSS between versions. The XML::RSS modules
 will convert between any of the formats.  If you set <encode_output> XML::RSS
-will make sure to encode any entities in generated RSS.  This is now on by default.
+will make sure to encode any entities in generated RSS.  This is now on by
+default.
+
+You can also pass an optional URL to an XSL stylesheet that can be used to
+output an C<<< <?xsl-stylesheet ... ?> >>> meta-tag in the header that will
+allow some browsers to render the RSS file as HTML.
 
 =item add_item (title=>$title, link=>$link, description=>$desc, mode=>$mode)
 
@@ -2156,7 +2266,10 @@ default the value is false. (N.B. AUTO_ADD only updates the
 %{$obj->{'modules'}} hash.  It does not provide the other benefits
 of using add_module.)
 
+=item append
 
+This has never been documented - do you use this?  Please email the
+maintainer a note (Documentation patches welcome too ;-) )
 
 =back
 

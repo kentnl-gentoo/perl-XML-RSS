@@ -1,9 +1,7 @@
 load.t
 pod.t
-
 version.t
 encoding.t
-
 0.9-generate.t
 0.9-parse.t
 0.91-parse.t
@@ -20,6 +18,7 @@ enclosures.t
 enclosures2.t
 encode-output.t
 items-are-0.t
-#pod-coverage.t
+pod-coverage.t
 rss2-gt-encoding.t
 charset1.t
+xml-header.t
