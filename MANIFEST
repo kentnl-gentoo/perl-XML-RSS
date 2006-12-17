@@ -15,6 +15,7 @@ examples/1.0/rss1.0.exotic.rdf
 examples/1.0/rss1.0.rdf
 examples/1.0/slash.rdf
 examples/1.0/update_rss_1.0.pl
+examples/1.0/with_content.rdf
 examples/2.0/sf-hs-with-lastBuildDate.rss
 examples/2.0/sf-hs-with-pubDate.rss
 examples/convert.pl
@@ -36,9 +37,12 @@ t/0.91-parse.t
 t/1.0-generate.t
 t/1.0-parse-exotic.t
 t/1.0-parse.t
+t/1.0-parse-2.t
 t/1.0-to-2.0.t
 t/2.0-generate.t
+t/2.0-modules.t
 t/2.0-parse.t
+t/2.0-parse-2.t
 t/2.0-permalink.t
 t/2.0-wo-title.t
 t/auto_add_modules.t

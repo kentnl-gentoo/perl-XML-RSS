@@ -84,9 +84,6 @@ ok($rss->add_item(
 		  enclosure   => { type=>"application/x-bittorrent", url => 'http://127.0.0.1/torrents/The_Passion_of_Dave_Winer.torrent' },
 		 ), "Set one RSS item" );
 
-my $len = length($rss->as_string());
-ok( $len, "RSS feed has '$len' characters" );
-
 ok( $rss->add_module( prefix => RSS_MOD_PREFIX, uri => RSS_MOD_URI ),
 	"Added module: " . RSS_MOD_PREFIX );
 
@@ -97,10 +94,22 @@ my $uri = RSS_MOD_URI;
 
 is( $rss->{modules}->{$uri}, RSS_MOD_PREFIX, "Namespace URI is " . RSS_MOD_URI);
 
+my $as_string = $rss->as_string();
+my $len = length($as_string);
+ok( $len, "RSS feed has '$len' characters" );
+
 ok( $rss->save(RSS_SAVEAS), "Wrote to disk: " . RSS_SAVEAS );
 
-my $size = -s (RSS_SAVEAS);
-is( $size, $len, RSS_SAVEAS . " has '$size' characters.");
+my $file_contents;
+{
+    local $/;
+    open I, "<", RSS_SAVEAS();
+    $file_contents = <I>;
+    close(I);
+}
+ 
+is($file_contents,$as_string,RSS_SAVEAS." contains the as_string() result");
+
 
 eval { $rss->parsefile( RSS_SAVEAS ) };
 is( $@, '', "Parsed " . RSS_SAVEAS );
