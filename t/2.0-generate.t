@@ -1,6 +1,6 @@
 use strict;
 
-use Test::More tests => 26;
+use Test::More tests => 27;
 
 BEGIN {
   use_ok("XML::RSS");
@@ -17,7 +17,7 @@ my $pub_date     = &POSIX::strftime( DATE_TEMPLATE_PUB,   gmtime );
 ok( $current_date, "Current date: $current_date" );
 
 use constant RSS_VERSION    => "2.0";
-use constant RSS_SAVEAS     => "t/" . RSS_VERSION . "-generated.xml";
+use constant RSS_SAVEAS     => "t/generated/" . RSS_VERSION . "-generated.xml";
 
 use constant RSS_MOD_PREFIX => "my";
 use constant RSS_MOD_URI    => 'http://purl.org/my/rss/module/';
@@ -138,6 +138,15 @@ is( $rss->{items}->[0]->{link},        RSS_ITEM_LINK,  RSS_ITEM_LINK  );
 is( $rss->{items}->[0]->{description}, RSS_ITEM_DESC,  RSS_ITEM_DESC  );
 
 is( $rss->{items}->[0]->{author},      RSS_CREATOR,    RSS_CREATOR    );
+
+eval
+{
+    $rss->save(".");
+};
+
+ok ($@ =~ m{\ACannot open file \. for write},
+    "Exception upon saving to an invalid location"
+);
 
 #END{ unlink RSS_SAVEAS }
 

@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 93;
+use Test::More tests => 166;
 
 use XML::RSS;
 
@@ -35,8 +35,10 @@ sub not_contains
 sub create_rss_1
 {
     my $args = shift;
+
+    my $extra_rss_args = $args->{rss_args} || [];
     # my $rss = new XML::RSS (version => '0.9');
-    my $rss = new XML::RSS (version => $args->{version});
+    my $rss = new XML::RSS (version => $args->{version}, @$extra_rss_args);
     my $image_link = exists($args->{image_link}) ? $args->{image_link} : 
         "http://freshmeat.net/";
 
@@ -246,6 +248,72 @@ sub create_skipDays_rss
     return $rss;
 }
 
+sub create_rss_with_image_w_undef_link
+{
+    my $args = shift;
+    # my $rss = new XML::RSS (version => '0.9');
+    my $rss = new XML::RSS (version => $args->{version});
+
+    my $extra_image_params = $args->{image_params} || [];
+
+    $rss->channel(
+        title => "freshmeat.net",
+        link  => "http://freshmeat.net",
+        description => "the one-stop-shop for all your Linux software needs",
+        );
+
+    $rss->image(
+        title => "freshmeat.net",
+        url   => "0",
+        @{$extra_image_params},
+        );
+
+    $rss->add_item(
+        title => "GTKeyboard 0.85",
+        link  => "http://freshmeat.net/news/1999/06/21/930003829.html"
+        );
+
+    return $rss;
+}
+
+sub create_item_rss
+{
+    my $args = shift;
+    # my $rss = new XML::RSS (version => '0.9');
+    my $rss = new XML::RSS (version => $args->{version});
+
+    my $extra_item_params = $args->{item_params} || [];
+
+    $rss->channel(
+        title => "freshmeat.net",
+        link  => "http://freshmeat.net",
+        description => "the one-stop-shop for all your Linux software needs",
+        );
+
+    $rss->add_item(
+        title => "Freecell Solver",
+        link  => "http://fc-solve.berlios.de/",
+        @$extra_item_params,
+        );
+
+    return $rss;
+}
+
+sub create_rss_without_item
+{
+    my $args = shift;
+    # my $rss = new XML::RSS (version => '0.9');
+    my $rss = new XML::RSS (version => $args->{version});
+
+    $rss->channel(
+        title => "freshmeat.net",
+        link  => "http://freshmeat.net",
+        description => "the one-stop-shop for all your Linux software needs",
+        );
+
+    return $rss;
+}
+
 {
     my $rss = create_no_image_rss({version => "0.9"});
     # TEST
@@ -286,21 +354,21 @@ sub create_skipDays_rss
 {
     my $rss = create_rss_1({version => "0.9"});
     # TEST
-    like ($rss->as_string, qr{<image>.*?<title>freshmeat.net</title>.*?<url>0</url>.*?<link>http://freshmeat.net/</link>.*?</image>}s,
+    ok ($rss->as_string =~ m{<image>.*?<title>freshmeat.net</title>.*?<url>0</url>.*?<link>http://freshmeat.net/</link>.*?</image>}s,
          "Checking for image in RSS 0.9");
 }
 
 {
     my $rss = create_rss_1({version => "0.91"});
     # TEST
-    like ($rss->as_string, qr{<image>.*?<title>freshmeat.net</title>.*?<url>0</url>.*?<link>http://freshmeat.net/</link>.*?</image>}s,
+    ok ($rss->as_string =~ m{<image>.*?<title>freshmeat.net</title>.*?<url>0</url>.*?<link>http://freshmeat.net/</link>.*?</image>}s,
          "Checking for image in RSS 0.9.1");
 }
 
 {
     my $rss = create_rss_1({version => "1.0"});
     # TEST
-    like ($rss->as_string, qr{<image rdf:about="0">.*?<title>freshmeat.net</title>.*?<url>0</url>.*?<link>http://freshmeat.net/</link>.*?</image>}s,
+    ok ($rss->as_string =~ m{<image rdf:about="0">.*?<title>freshmeat.net</title>.*?<url>0</url>.*?<link>http://freshmeat.net/</link>.*?</image>}s,
          "Checking for image in RSS 1.0");
     # TEST
     contains ($rss, 
@@ -312,7 +380,7 @@ sub create_skipDays_rss
 {
     my $rss = create_rss_1({version => "2.0"});
     # TEST
-    like ($rss->as_string, qr{<image>.*?<title>freshmeat.net</title>.*?<url>0</url>.*?<link>http://freshmeat.net/</link>.*?</image>}s,
+    ok ($rss->as_string =~ m{<image>.*?<title>freshmeat.net</title>.*?<url>0</url>.*?<link>http://freshmeat.net/</link>.*?</image>}s,
          "Checking for image in RSS 2.0");
 }
 
@@ -1478,3 +1546,2328 @@ sub create_skipDays_rss
         "2.0 - channel/lastBuildDate Markup Injection"
     );
 }
+
+{
+    my $rss = create_rss_with_image_w_undef_link({version => "0.9"});
+    # TEST
+    contains ($rss, qq{<image>\n<title>freshmeat.net</title>\n<url>0</url>\n</image>\n},
+        "Image with undefined link does not render the Image - RSS version 0.9"
+    );
+}
+
+
+{
+    my $rss = create_rss_with_image_w_undef_link({version => "1.0"});
+    # TEST
+    contains ($rss, 
+        qq{<image rdf:about="0">\n<title>freshmeat.net</title>\n} . 
+        qq{<url>0</url>\n</image>\n},
+        "Image with undefined link does not render the Image - RSS version 1.0"
+    );
+}
+
+{
+    my $rss = create_channel_rss({
+            version => "1.0", 
+            channel_params => [about => "http://xml-rss-hackers.tld/"],
+        });
+    # TEST
+    contains($rss, "<channel rdf:about=\"http://xml-rss-hackers.tld/\">\n" .
+        "<title>freshmeat.net</title>\n" .
+        "<link>http://freshmeat.net</link>\n" .
+        "<description>Linux software</description>\n" .
+        "<items>\n",
+        "1.0 - channel/about overrides the rdf:about attribute."
+    );
+}
+
+{
+    my $rss = create_channel_rss({
+        version => "1.0",
+        channel_params => 
+        [
+            taxo => ["Foo", "Bar", "QuGof", "Lambda&Delta"],
+        ],
+    });
+    # TEST
+    contains($rss, "<channel rdf:about=\"http://freshmeat.net\">\n" .
+        "<title>freshmeat.net</title>\n" .
+        "<link>http://freshmeat.net</link>\n" .
+        "<description>Linux software</description>\n" .
+        qq{<taxo:topics>\n  <rdf:Bag>\n} .
+        qq{    <rdf:li resource="Foo" />\n} .
+        qq{    <rdf:li resource="Bar" />\n} .
+        qq{    <rdf:li resource="QuGof" />\n} .
+        qq{    <rdf:li resource="Lambda&#x26;Delta" />\n} .
+        qq{  </rdf:Bag>\n</taxo:topics>\n} .
+        "<items>\n",
+        "1.0 - taxo topics"
+    );
+}
+
+{
+    my $rss = create_channel_rss({
+        version => "1.0",
+        channel_params => 
+        [
+            admin => { 'foobar' => "Quod", },
+        ],
+    });
+    # TEST
+    contains($rss, "<channel rdf:about=\"http://freshmeat.net\">\n" .
+        "<title>freshmeat.net</title>\n" .
+        "<link>http://freshmeat.net</link>\n" .
+        "<description>Linux software</description>\n" .
+        "<admin:foobar>Quod</admin:foobar>\n" .
+        "<items>\n",
+        '1.0 - channel/[module] with unknown key'
+    );
+}
+
+{
+    my $rss = create_channel_rss({
+        version => "1.0",
+        channel_params => 
+        [
+            eloq => { 'grow' => "There", },
+        ],
+    });
+
+    $rss->add_module(prefix => "eloq", uri => "http://eloq.tld2/Gorj/");
+    # TEST
+    contains($rss, "<channel rdf:about=\"http://freshmeat.net\">\n" .
+        "<title>freshmeat.net</title>\n" .
+        "<link>http://freshmeat.net</link>\n" .
+        "<description>Linux software</description>\n" .
+        "<eloq:grow>There</eloq:grow>\n" .
+        "<items>\n",
+        '1.0 - channel/[module] with new module'
+    );
+}
+
+{
+    my $rss = create_rss_1({
+        version => "1.0",
+        image_params => 
+        [
+            admin => { 'foobar' => "Quod", },
+        ],
+    });
+    # TEST
+    contains($rss, "<image rdf:about=\"0\">\n" .
+        "<title>freshmeat.net</title>\n" .
+        "<url>0</url>\n" .
+        "<link>http://freshmeat.net/</link>\n" .
+        "<admin:foobar>Quod</admin:foobar>\n" .
+        "</image>",
+        '1.0 - image/[module] with unknown key'
+    );
+}
+
+{
+    my $rss = create_rss_1({
+        version => "1.0",
+        image_params => 
+        [
+            eloq => { 'grow' => "There", },
+        ],
+    });
+
+    $rss->add_module(prefix => "eloq", uri => "http://eloq.tld2/Gorj/");
+    # TEST
+    contains($rss, "<image rdf:about=\"0\">\n" .
+        "<title>freshmeat.net</title>\n" .
+        "<url>0</url>\n" .
+        "<link>http://freshmeat.net/</link>\n" .
+        "<eloq:grow>There</eloq:grow>\n" .
+        "</image>",
+        '1.0 - image/[module] with new module'
+    );
+}
+
+{
+    my $rss = create_rss_1({
+        version => "1.0",
+        image_params => 
+        [
+            admin => { 'generatorAgent' => "Spozilla 5.5", },
+        ],
+    });
+    # TEST
+    contains($rss, "<image rdf:about=\"0\">\n" .
+        "<title>freshmeat.net</title>\n" .
+        "<url>0</url>\n" .
+        "<link>http://freshmeat.net/</link>\n" .
+        "<admin:generatorAgent rdf:resource=\"Spozilla 5.5\" />\n" .
+        "</image>",
+        '1.0 - image/[module] with known module'
+    );
+}
+
+{
+    my $rss = create_channel_rss({
+        version => "1.0",
+    });
+
+    $rss->add_item(
+        title => "In the Jungle",
+        link => "http://jungle.tld/Enter/",
+        taxo => ["Foo","Loom", "<Ard>", "Yok&Dol"],
+    );
+
+    # TEST
+    contains($rss, "<item rdf:about=\"http://jungle.tld/Enter/\">\n" .
+        "<title>In the Jungle</title>\n" .
+        "<link>http://jungle.tld/Enter/</link>\n" .
+        qq{<taxo:topics>\n} . 
+        qq{  <rdf:Bag>\n} .
+        qq{    <rdf:li resource="Foo" />\n} .
+        qq{    <rdf:li resource="Loom" />\n} .
+        qq{    <rdf:li resource="&#x3C;Ard&#x3E;" />\n} .
+        qq{    <rdf:li resource="Yok&#x26;Dol" />\n} .
+        qq{  </rdf:Bag>\n} . 
+        qq{</taxo:topics>\n} .
+        "</item>\n",
+        "1.0 - item/taxo:topics (with escaping)"
+    );
+}
+
+## Test the RSS 1.0 items' ad-hoc modules support.
+
+{
+    my $rss = create_item_rss({
+        version => "1.0",
+        item_params => 
+        [
+            admin => { 'foobar' => "Quod", },
+        ],
+    });
+
+    # TEST
+    contains($rss, "<item rdf:about=\"http://fc-solve.berlios.de/\">\n" .
+        "<title>Freecell Solver</title>\n" .
+        "<link>http://fc-solve.berlios.de/</link>\n" .
+        "<admin:foobar>Quod</admin:foobar>\n" .
+        "</item>",
+        '1.0 - item/[module] with unknown key'
+    );
+}
+
+{
+    my $rss = create_item_rss({
+        version => "1.0",
+        item_params => 
+        [
+            eloq => { 'grow' => "There", },
+        ],
+    });
+
+    $rss->add_module(prefix => "eloq", uri => "http://eloq.tld2/Gorj/");
+
+    # TEST
+    contains($rss, "<item rdf:about=\"http://fc-solve.berlios.de/\">\n" .
+        "<title>Freecell Solver</title>\n" .
+        "<link>http://fc-solve.berlios.de/</link>\n" .
+        "<eloq:grow>There</eloq:grow>\n" .        
+        "</item>",
+        '1.0 - item/[module] with new module'
+    );
+}
+
+{
+    my $rss = create_item_rss({
+        version => "1.0",
+        item_params => 
+        [
+            admin => { 'generatorAgent' => "Spozilla 5.5", },
+        ],
+    });
+
+    # TEST
+    contains($rss, "<item rdf:about=\"http://fc-solve.berlios.de/\">\n" .
+        "<title>Freecell Solver</title>\n" .
+        "<link>http://fc-solve.berlios.de/</link>\n" .
+        "<admin:generatorAgent rdf:resource=\"Spozilla 5.5\" />\n" .
+        "</item>",
+        '1.0 - item/[module] with known module'
+    );
+}
+
+{
+    my $rss = create_textinput_with_0_rss({version => "1.0",
+            textinput_params => [admin => { 'foobar' => "Quod", },],
+        });
+    # TEST
+    contains(
+        $rss,
+        ("<textinput rdf:about=\"0\">\n" .
+         join("", map {"<$_>0</$_>\n"} (qw(title description name link))) .
+         "<admin:foobar>Quod</admin:foobar>\n" .
+         "</textinput>\n"
+        ),
+        "1.0 - textinput/[module]",
+    );
+}
+
+{
+    my $rss = create_channel_rss({
+        version => "2.0",
+        channel_params => 
+        [
+            admin => { 'generatorAgent' => "Spozilla 5.5", },
+        ],
+    });
+
+    $rss->add_module(prefix => "admin", uri => "http://webns.net/mvcb/");
+    # TEST
+
+    contains($rss, "<channel>\n" .
+        "<title>freshmeat.net</title>\n" .
+        "<link>http://freshmeat.net</link>\n" .
+        "<description>Linux software</description>\n" .
+        "<lastBuildDate>Sat, 07 Sep 2002 09:42:31 GMT</lastBuildDate>\n" .
+        "<admin:generatorAgent rdf:resource=\"Spozilla 5.5\" />\n" .
+        "\n" . 
+        "<item>\n",
+        '2.0 - channel/[module] with known module and key'
+    );
+}
+
+
+{
+    my $rss = create_channel_rss({
+        version => "2.0",
+        channel_params => 
+        [
+            admin => { 'foobar' => "Quod", },
+        ],
+    });
+    $rss->add_module(prefix => "admin", uri => "http://webns.net/mvcb/");
+    # TEST
+    contains($rss, "<channel>\n" .
+        "<title>freshmeat.net</title>\n" .
+        "<link>http://freshmeat.net</link>\n" .
+        "<description>Linux software</description>\n" .
+        "<lastBuildDate>Sat, 07 Sep 2002 09:42:31 GMT</lastBuildDate>\n" .
+        "<admin:foobar>Quod</admin:foobar>\n" .
+        "\n" .
+        "<item>\n",
+        '2.0 - channel/[module] with unknown key'
+    );
+}
+
+{
+    my $rss = create_channel_rss({
+        version => "2.0",
+        channel_params => 
+        [
+            eloq => { 'grow' => "There", },
+        ],
+    });
+
+    $rss->add_module(prefix => "eloq", uri => "http://eloq.tld2/Gorj/");
+    # TEST
+    contains($rss, "<channel>\n" .
+        "<title>freshmeat.net</title>\n" .
+        "<link>http://freshmeat.net</link>\n" .
+        "<description>Linux software</description>\n" .
+        "<lastBuildDate>Sat, 07 Sep 2002 09:42:31 GMT</lastBuildDate>\n" .
+        "<eloq:grow>There</eloq:grow>\n" .
+        "\n" .
+        "<item>\n",
+        '2.0 - channel/[module] with new module'
+    );
+}
+
+
+## Testing the RSS 2.0 Image Modules Support
+
+{
+    my $rss = create_rss_1({
+        version => "2.0",
+        image_params => 
+        [
+            admin => { 'foobar' => "Quod", },
+        ],
+    });
+    $rss->add_module(prefix => "admin", uri => "http://webns.net/mvcb/");
+    # TEST
+    contains($rss, "<image>\n" .
+        "<title>freshmeat.net</title>\n" .
+        "<url>0</url>\n" .
+        "<link>http://freshmeat.net/</link>\n" .
+        "<admin:foobar>Quod</admin:foobar>\n" .
+        "</image>\n",
+        '2.0 - image/[module] with unknown key'
+    );
+}
+
+{
+    my $rss = create_rss_1({
+        version => "2.0",
+        image_params => 
+        [
+            eloq => { 'grow' => "There", },
+        ],
+    });
+
+    $rss->add_module(prefix => "eloq", uri => "http://eloq.tld2/Gorj/");
+    # TEST
+    contains($rss, "<image>\n" .
+        "<title>freshmeat.net</title>\n" .
+        "<url>0</url>\n" .
+        "<link>http://freshmeat.net/</link>\n" .
+        "<eloq:grow>There</eloq:grow>\n" .
+        "</image>",
+        '2.0 - image/[module] with new module'
+    );
+}
+
+{
+    my $rss = create_rss_1({
+        version => "2.0",
+        image_params => 
+        [
+            admin => { 'generatorAgent' => "Spozilla 5.5", },
+        ],
+    });
+    $rss->add_module(prefix => "admin", uri => "http://webns.net/mvcb/");
+    # TEST
+    contains($rss, "<image>\n" .
+        "<title>freshmeat.net</title>\n" .
+        "<url>0</url>\n" .
+        "<link>http://freshmeat.net/</link>\n" .
+        "<admin:generatorAgent rdf:resource=\"Spozilla 5.5\" />\n" .
+        "</image>",
+        '2.0 - image/[module] with known module'
+    );
+}
+
+## Test the RSS 2.0 items' ad-hoc modules support.
+
+{
+    my $rss = create_item_rss({
+        version => "2.0",
+        item_params => 
+        [
+            admin => { 'foobar' => "Quod", },
+        ],
+    });
+    $rss->add_module(prefix => "admin", uri => "http://webns.net/mvcb/");
+
+    # TEST
+    contains($rss, "<item>\n" .
+        "<title>Freecell Solver</title>\n" .
+        "<link>http://fc-solve.berlios.de/</link>\n" .
+        "<admin:foobar>Quod</admin:foobar>\n" .
+        "</item>",
+        '2.0 - item/[module] with unknown key'
+    );
+}
+
+{
+    my $rss = create_item_rss({
+        version => "2.0",
+        item_params => 
+        [
+            eloq => { 'grow' => "There", },
+        ],
+    });
+
+    $rss->add_module(prefix => "eloq", uri => "http://eloq.tld2/Gorj/");
+
+    # TEST
+    contains($rss, "<item>\n" .
+        "<title>Freecell Solver</title>\n" .
+        "<link>http://fc-solve.berlios.de/</link>\n" .
+        "<eloq:grow>There</eloq:grow>\n" .        
+        "</item>",
+        '2.0 - item/[module] with new module'
+    );
+}
+
+{
+    my $rss = create_item_rss({
+        version => "2.0",
+        item_params => 
+        [
+            admin => { 'generatorAgent' => "Spozilla 5.5", },
+        ],
+    });
+    $rss->add_module(prefix => "admin", uri => "http://webns.net/mvcb/");
+
+    # TEST
+    contains($rss, "<item>\n" .
+        "<title>Freecell Solver</title>\n" .
+        "<link>http://fc-solve.berlios.de/</link>\n" .
+        "<admin:generatorAgent rdf:resource=\"Spozilla 5.5\" />\n" .
+        "</item>",
+        '2.0 - item/[module] with known module'
+    );
+}
+
+## Test the RSS 2.0 skipping-items condition.
+
+{
+    my $rss = create_rss_without_item({
+        version => "2.0",
+    });
+    $rss->add_item(
+        link  => "http://freshmeat.net/news/1999/06/21/930003829.html"
+    );
+
+    # TEST
+    not_contains($rss, "<item>\n",
+        '2.0 - Item without description or title is skipped'
+    );
+}
+
+## Test the RSS 2.0 <source url= condition.
+{
+    # TEST:$num_iters=3;
+    foreach my $s (
+        [undef, "http://www.hercules.tld/",],
+        ["Hercules", undef,],
+        [undef, undef],
+        )
+    {
+        my $rss = create_item_with_0_rss({version => "2.0",
+                item_params => 
+                [
+                    title => "Foo&Bar",
+                    link => "http://www.mylongtldyeahbaby/",
+                    source => $s->[0],
+                    sourceUrl => $s->[1],
+                ],
+            }
+        );
+
+        # TEST*$num_iters
+        contains(
+            $rss,
+            ("<item>\n" .
+             "<title>Foo&#x26;Bar</title>\n" .
+             "<link>http://www.mylongtldyeahbaby/</link>\n" .
+             "</item>"
+             ),
+            "2.0 - item - Source and/or Source URL are not defined",
+        );
+    }
+}
+
+{
+    # Here we create an RSS 2.0 object and render it as the output
+    # version "3.5" in order to test that version 1.0 is the default
+    # version for output.
+    my $rss = create_channel_rss({
+            version => "2.0", 
+            channel_params =>
+            [copyright => "Martha", managingEditor => 0,],
+            omit_date => 1,
+        });
+    $rss->{output} = "3.5";
+    # TEST
+    contains($rss, "<channel rdf:about=\"http://freshmeat.net\">\n" .
+        "<title>freshmeat.net</title>\n" .
+        "<link>http://freshmeat.net</link>\n" .
+        "<description>Linux software</description>\n" .
+        "<dc:rights>Martha</dc:rights>\n" .
+        "<dc:publisher>0</dc:publisher>\n" .
+        "<items>\n",
+        "Unknown version renders as 1.0"
+    );
+}
+
+{
+    my $version = "0.91";
+    my $rss = create_rss_1({
+            version => $version,
+            image_link => "Hello <there&amp;Yes>",
+            rss_args => ["encode_output" => 0],
+        });
+    # TEST
+    contains($rss,
+        "<image>\n<title>freshmeat.net</title>\n<url>0</url>\n<link>Hello <there&amp;Yes></link>\n</image>\n",
+        "Testing encode_output is false",
+    );
+}
+
+{
+    my $rss = create_channel_rss({
+            version => "0.91",
+            image_link => undef,
+            channel_params => [ title => undef ],
+        });
+
+    my $output;
+
+    eval
+    {
+        $output = $rss->as_string();
+    };
+
+    # TEST
+    ok ($@ =~ m{\A\$text is undefined in XML::RSS::_encode},
+        "Undefined string throws an exception"
+    );
+}
+
+{
+    my $rss = create_channel_rss({
+            version => "0.91",
+            image_link => undef,
+            channel_params => [ title => "Hello and <![CDATA[Aloha<&>]]>"],
+        });
+
+    # TEST
+    contains($rss,
+        "<title>Hello and <![CDATA[Aloha<&>]]></title>",
+    );
+}
+
+################
+### RSS Parsing Tests:
+### We generate RSS and test that we get the same results.
+################
+
+sub parse_generated_rss
+{
+    my $args = shift;
+
+    my $gen_func = $args->{'func'};
+
+    my $rss_generator = $gen_func->($args);
+
+    $rss_generator->{output} = $args->{version};
+
+    my $output = $rss_generator->as_string();
+    
+    if ($args->{postproc})
+    {
+        $args->{postproc}->(\$output);
+    }
+    
+    my $parser = XML::RSS->new(version => $args->{version});
+
+    $parser->parse($output);
+
+    return $parser;
+}
+
+{
+    my $rss =
+        parse_generated_rss({
+            func => \&create_textinput_with_0_rss,
+            version => "0.9",
+            textinput_params => [
+                description => "Welcome to the Jungle.", 
+                'link' => "http://fooque.tld/",
+                'title' => "The Jungle of the City",
+                'name' => "There's more than one way to do it.",
+                ],
+            postproc => sub {
+                    for (${shift()})
+                    {
+                        s{(<rdf:RDF)[^>]*(>)}{<rss version="0.9">};
+                        s{</rdf:RDF>}{</rss>};
+                    }
+            },
+        });
+
+    # TEST
+    is ($rss->{textinput}->{description},
+        "Welcome to the Jungle.",
+        "0.9 parse - textinput/description",
+    );
+
+    # TEST
+    is ($rss->{textinput}->{link},
+        "http://fooque.tld/",
+        "0.9 parse - textinput/link",
+    );
+
+    # TEST
+    is ($rss->{textinput}->{title},
+        "The Jungle of the City",
+        "0.9 parse - textinput/title",
+    );
+
+    # TEST
+    is ($rss->{textinput}->{name},
+        "There's more than one way to do it.",
+        "0.9 parse - textinput/name",
+    );
+}
+
+{
+    my $rss_parser =
+        parse_generated_rss(
+            {
+                func => \&create_textinput_with_0_rss,
+                version => "0.9",
+                textinput_params => [
+                    description => "Welcome to the Jungle.", 
+                    'link' => "http://fooque.tld/",
+                    'title' => "The Jungle of the City",
+                    'name' => "There's more than one way to do it.",
+                ],
+                postproc => sub {
+                    for (${shift()})
+                    {
+                        s{(<rdf:RDF)[^>]*(>)}{<rss version="0.9">};
+                        s{</rdf:RDF>}{</rss>};
+                        s{<(/?)textinput>}{<$1textInput>}g;
+                    }   
+                },
+            }
+        );
+
+    # TEST
+    is ($rss_parser->{textinput}->{description},
+        "Welcome to the Jungle.",
+        "0.9 parse - textinput/description",
+    );
+
+    # TEST
+    is ($rss_parser->{textinput}->{link},
+        "http://fooque.tld/",
+        "Parse textInput (with capital I) - textinput/link",
+    );
+
+    # TEST
+    is ($rss_parser->{textinput}->{title},
+        "The Jungle of the City",
+        "Parse textInput (with capital I) - textinput/title",
+    );
+
+    # TEST
+    is ($rss_parser->{textinput}->{name},
+        "There's more than one way to do it.",
+        "Parse textInput (with capital I) - textinput/name",
+    );
+}
+
+{
+    my $rss_parser =
+        parse_generated_rss(
+            {
+                func => \&create_textinput_with_0_rss,
+                version => "0.9",
+                textinput_params => [
+                    description => "Welcome to the Jungle.", 
+                    'link' => "http://fooque.tld/",
+                    'title' => "The Jungle of the City",
+                    'name' => "There's more than one way to do it.",
+                ],
+                postproc => sub {
+                    for (${shift()})
+                    {
+                        s{<(/?)textinput>}{<$1textInput>}g
+                    }
+                },
+            }
+        );
+
+    # TEST
+    is ($rss_parser->{textinput}->{description},
+        "Welcome to the Jungle.",
+        "0.9 parse - textinput/description",
+    );
+
+    # TEST
+    is ($rss_parser->{textinput}->{link},
+        "http://fooque.tld/",
+        "Parse textInput (with capital I) - textinput/link",
+    );
+
+    # TEST
+    is ($rss_parser->{textinput}->{title},
+        "The Jungle of the City",
+        "Parse textInput (with capital I) - textinput/title",
+    );
+
+    # TEST
+    is ($rss_parser->{textinput}->{name},
+        "There's more than one way to do it.",
+        "Parse textInput (with capital I) - textinput/name",
+    )
+}
+
+{
+    my $rss_parser =
+        parse_generated_rss(
+            {
+                func => \&create_skipHours_rss,
+                version => "0.91", 
+                skipHours_params => [ hour => "5" ],
+            }
+        );
+
+    # TEST
+    is ($rss_parser->{skipHours}->{hour},
+        "5",
+        "Parse 0.91 - skipHours/hour",
+    );
+}
+
+{
+    my $rss_parser =
+        parse_generated_rss(
+            {
+                func => \&create_skipHours_rss,
+                version => "2.0", 
+                skipHours_params => [ hour => "5" ],
+            }
+        );
+    
+    # TEST
+    is ($rss_parser->{skipHours}->{hour},
+        "5",
+        "Parse 2.0 - skipHours/hour",
+    );
+}
+
+## Test the skipDays parsing.
+
+{
+    my $rss_parser =
+        parse_generated_rss(
+            {
+                func => \&create_skipDays_rss,
+                version => "0.91", 
+                skipDays_params => [ day => "5" ],
+            }
+        );
+
+    # TEST
+    is ($rss_parser->{skipDays}->{day},
+        "5",
+        "Parse 0.91 - skipDays/day",
+    );
+}
+
+{
+    my $rss_parser =
+        parse_generated_rss(
+            {
+                func => \&create_skipDays_rss,
+                version => "2.0", 
+                skipDays_params => [ day => "5" ],
+            }
+        );
+    
+    # TEST
+    is ($rss_parser->{skipDays}->{day},
+        "5",
+        "Parse 2.0 - skipDays/day",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "2.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rss version="2.0"
+ xmlns:blogChannel="http://backend.userland.com/blogChannelModule"
+ xmlns:foo="http://foo.tld/foobar/"
+>
+
+<channel>
+<title>Test 2.0 Feed</title>
+<link>http://example.com/</link>
+<description></description>
+<language>en-us</language>
+<copyright>Copyright 2002</copyright>
+<pubDate>2007-01-19T14:21:43+0200</pubDate>
+<lastBuildDate>2007-01-19T14:21:43+0200</lastBuildDate>
+<docs>http://backend.userland.com/rss</docs>
+<managingEditor>editor@example.com</managingEditor>
+<webMaster>webmaster@example.com</webMaster>
+<category>MyCategory</category>
+<generator>XML::RSS Test</generator>
+<ttl>60</ttl>
+
+<image>
+<title>Test Image</title>
+<url>http://example.com/example.gif</url>
+<link>http://example.com/</link>
+<height>25</height>
+<description>Test Image</description>
+<foo:hello>Hi there!</foo:hello>
+</image>
+
+<item>
+<title>This is an item</title>
+<link>http://example.com/2007/01/19</link>
+<description>Yadda yadda yadda - R&#x26;D;</description>
+<author>joeuser@example.com</author>
+<category>MyCategory</category>
+<comments>http://example.com/2007/01/19/comments.html</comments>
+<guid isPermaLink="true">http://example.com/2007/01/19</guid>
+<pubDate>Fri 19 Jan 2007 02:21:43 PM IST GMT</pubDate>
+<source url="http://example.com">my brain</source>
+<enclosure url="http://127.0.0.1/torrents/The_Passion_of_Dave_Winer.torrent" type="application/x-bittorrent" />
+</item>
+
+</channel>
+</rss>
+EOF
+
+    # TEST
+    is ($rss_parser->{image}->{"http://foo.tld/foobar/"}->{hello},
+        "Hi there!",
+        "Parsing 2.0 - element in a different namespace contained in image",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:my="http://purl.org/my/rss/module/"
+ xmlns:admin="http://webns.net/mvcb/"
+>
+
+<channel rdf:about="http://example.com/">
+<title>Test 1.0 Feed</title>
+<link>http://example.com/</link>
+<description>To lead by example</description>
+<dc:date>2007-01-19T14:21:18+0200</dc:date>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://example.com/2007/01/19" />
+ </rdf:Seq>
+</items>
+<image rdf:resource="http://example.com/example.gif" />
+<textinput rdf:resource="http://example.com/search.pl" />
+</channel>
+
+<image rdf:about="http://example.com/example.gif" xmlns="">
+<title>Test Image</title>
+<url>http://example.com/example.gif</url>
+<link>http://example.com/</link>
+<foo>Aye Karamba</foo>
+</image>
+
+<item rdf:about="http://example.com/2007/01/19">
+<title>This is an item</title>
+<link>http://example.com/2007/01/19</link>
+<description>Yadda &#x26; yadda &#x26; yadda</description>
+<dc:creator>joeuser@example.com</dc:creator>
+</item>
+
+<textinput rdf:about="http://example.com/search.pl">
+<title>Search</title>
+<description>Search for an example</description>
+<name>q</name>
+<link>http://example.com/search.pl</link>
+</textinput>
+
+</rdf:RDF>
+EOF
+
+    # TEST
+    is ($rss_parser->{image}->{""}->{foo},
+        "Aye Karamba",
+        "Parsing 1.0 - element in a null namespace contained in image",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "2.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rss version="2.0"
+ xmlns:blogChannel="http://backend.userland.com/blogChannelModule"
+ xmlns:foo="http://foo.tld/foobar/"
+>
+
+<channel>
+<title>Test 2.0 Feed</title>
+<link>http://example.com/</link>
+<description></description>
+<language>en-us</language>
+<copyright>Copyright 2002</copyright>
+<pubDate>2007-01-19T14:21:43+0200</pubDate>
+<lastBuildDate>2007-01-19T14:21:43+0200</lastBuildDate>
+<docs>http://backend.userland.com/rss</docs>
+<managingEditor>editor@example.com</managingEditor>
+<webMaster>webmaster@example.com</webMaster>
+<category>MyCategory</category>
+<generator>XML::RSS Test</generator>
+<ttl>60</ttl>
+
+<image>
+<title>Test Image</title>
+<url>http://example.com/example.gif</url>
+<link>http://example.com/</link>
+<height>25</height>
+<description>Test Image</description>
+</image>
+
+<item>
+<title>This is an item</title>
+<link>http://example.com/2007/01/19</link>
+<description>Yadda yadda yadda - R&#x26;D;</description>
+<author>joeuser@example.com</author>
+<category>MyCategory</category>
+<comments>http://example.com/2007/01/19/comments.html</comments>
+<guid isPermaLink="true">http://example.com/2007/01/19</guid>
+<pubDate>Fri 19 Jan 2007 02:21:43 PM IST GMT</pubDate>
+<source url="http://example.com">my brain</source>
+<enclosure url="http://127.0.0.1/torrents/The_Passion_of_Dave_Winer.torrent" type="application/x-bittorrent" />
+<foo:hello>Hi there!</foo:hello>
+</item>
+
+</channel>
+</rss>
+EOF
+
+    # TEST
+    is ($rss_parser->{items}->[0]->{"http://foo.tld/foobar/"}->{hello},
+        "Hi there!",
+        "Parsing 2.0 - element in a different namespace contained in an item",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:alterrss="http://purl.org/rss/1.0/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:my="http://purl.org/my/rss/module/"
+ xmlns:admin="http://webns.net/mvcb/"
+>
+
+<channel rdf:about="http://example.com/">
+<title>Test 1.0 Feed</title>
+<link>http://example.com/</link>
+<description>To lead by example</description>
+<dc:date>2007-01-19T14:21:18+0200</dc:date>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://example.com/2007/01/19" />
+ </rdf:Seq>
+</items>
+<image rdf:resource="http://example.com/example.gif" />
+<textinput rdf:resource="http://example.com/search.pl" />
+</channel>
+
+<image rdf:about="http://example.com/example.gif">
+<title>Test Image</title>
+<url>http://example.com/example.gif</url>
+<link>http://example.com/</link>
+</image>
+
+<alterrss:item rdf:about="http://example.com/2007/01/19" xmlns="">
+<title>This is an item</title>
+<link>http://example.com/2007/01/19</link>
+<description>Yadda &#x26; yadda &#x26; yadda</description>
+<dc:creator>joeuser@example.com</dc:creator>
+<foo>Aye Karamba</foo>
+</alterrss:item>
+
+<textinput rdf:about="http://example.com/search.pl">
+<title>Search</title>
+<description>Search for an example</description>
+<name>q</name>
+<link>http://example.com/search.pl</link>
+</textinput>
+
+</rdf:RDF>
+EOF
+
+    # TEST
+    is ($rss_parser->{items}->[0]->{""}->{foo},
+        "Aye Karamba",
+        "Parsing 1.0 - element in a null namespace contained in image",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "2.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rss version="2.0"
+ xmlns:blogChannel="http://backend.userland.com/blogChannelModule"
+ xmlns:foo="http://foo.tld/foobar/"
+>
+
+<channel>
+<title>Test 2.0 Feed</title>
+<link>http://example.com/</link>
+<description></description>
+<language>en-us</language>
+<copyright>Copyright 2002</copyright>
+<pubDate>2007-01-19T14:21:43+0200</pubDate>
+<lastBuildDate>2007-01-19T14:21:43+0200</lastBuildDate>
+<docs>http://backend.userland.com/rss</docs>
+<managingEditor>editor@example.com</managingEditor>
+<webMaster>webmaster@example.com</webMaster>
+<category>MyCategory</category>
+<generator>XML::RSS Test</generator>
+<ttl>60</ttl>
+
+<image>
+<title>Test Image</title>
+<url>http://example.com/example.gif</url>
+<link>http://example.com/</link>
+<height>25</height>
+<description>Test Image</description>
+</image>
+
+<item>
+<title>This is an item</title>
+<link>http://example.com/2007/01/19</link>
+<description>Yadda yadda yadda - R&#x26;D;</description>
+<author>joeuser@example.com</author>
+<category>MyCategory</category>
+<comments>http://example.com/2007/01/19/comments.html</comments>
+<guid isPermaLink="true">http://example.com/2007/01/19</guid>
+<pubDate>Fri 19 Jan 2007 02:21:43 PM IST GMT</pubDate>
+<source url="http://example.com">my brain</source>
+<enclosure url="http://127.0.0.1/torrents/The_Passion_of_Dave_Winer.torrent" type="application/x-bittorrent" />
+</item>
+
+<textInput>
+<title>Search</title>
+<description>Search for an example</description>
+<name>q</name>
+<link>http://example.com/search.pl</link>
+<foo:hello>Show Baloon</foo:hello>
+</textInput>
+
+</channel>
+</rss>
+EOF
+
+    # TEST
+    is ($rss_parser->{textinput}->{"http://foo.tld/foobar/"}->{hello},
+        "Show Baloon",
+        "Parsing 2.0 - element in a different namespace contained in a textinput",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:alterrss="http://purl.org/rss/1.0/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:my="http://purl.org/my/rss/module/"
+ xmlns:admin="http://webns.net/mvcb/"
+>
+
+<channel rdf:about="http://example.com/">
+<title>Test 1.0 Feed</title>
+<link>http://example.com/</link>
+<description>To lead by example</description>
+<dc:date>2007-01-19T14:21:18+0200</dc:date>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://example.com/2007/01/19" />
+ </rdf:Seq>
+</items>
+<image rdf:resource="http://example.com/example.gif" />
+<textinput rdf:resource="http://example.com/search.pl" />
+</channel>
+
+<image rdf:about="http://example.com/example.gif">
+<title>Test Image</title>
+<url>http://example.com/example.gif</url>
+<link>http://example.com/</link>
+</image>
+
+<item rdf:about="http://example.com/2007/01/19">
+<title>This is an item</title>
+<link>http://example.com/2007/01/19</link>
+<description>Yadda &#x26; yadda &#x26; yadda</description>
+<dc:creator>joeuser@example.com</dc:creator>
+</item>
+
+<textinput rdf:about="http://example.com/search.pl" xmlns="">
+<title>Search</title>
+<description>Search for an example</description>
+<name>q</name>
+<link>http://example.com/search.pl</link>
+<foo>Priceless</foo>
+</textinput>
+
+</rdf:RDF>
+EOF
+
+    # TEST
+    is ($rss_parser->{textinput}->{""}->{foo},
+        "Priceless",
+        "Parsing 1.0 - element in a null namespace contained in a textinput",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "2.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rss version="2.0"
+ xmlns:blogChannel="http://backend.userland.com/blogChannelModule"
+ xmlns:foo="http://foo.tld/foobar/"
+>
+
+<channel>
+<title>Test 2.0 Feed</title>
+<link>http://example.com/</link>
+<description></description>
+<language>en-us</language>
+<copyright>Copyright 2002</copyright>
+<pubDate>2007-01-19T14:21:43+0200</pubDate>
+<lastBuildDate>2007-01-19T14:21:43+0200</lastBuildDate>
+<docs>http://backend.userland.com/rss</docs>
+<managingEditor>editor@example.com</managingEditor>
+<webMaster>webmaster@example.com</webMaster>
+<category>MyCategory</category>
+<generator>XML::RSS Test</generator>
+<ttl>60</ttl>
+<foo:hello>The RSS Must Flow</foo:hello>
+
+<image>
+<title>Test Image</title>
+<url>http://example.com/example.gif</url>
+<link>http://example.com/</link>
+<height>25</height>
+<description>Test Image</description>
+</image>
+
+<item>
+<title>This is an item</title>
+<link>http://example.com/2007/01/19</link>
+<description>Yadda yadda yadda - R&#x26;D;</description>
+<author>joeuser@example.com</author>
+<category>MyCategory</category>
+<comments>http://example.com/2007/01/19/comments.html</comments>
+<guid isPermaLink="true">http://example.com/2007/01/19</guid>
+<pubDate>Fri 19 Jan 2007 02:21:43 PM IST GMT</pubDate>
+<source url="http://example.com">my brain</source>
+<enclosure url="http://127.0.0.1/torrents/The_Passion_of_Dave_Winer.torrent" type="application/x-bittorrent" />
+</item>
+
+<textInput>
+<title>Search</title>
+<description>Search for an example</description>
+<name>q</name>
+<link>http://example.com/search.pl</link>
+</textInput>
+
+</channel>
+</rss>
+EOF
+
+    # TEST
+    is ($rss_parser->{channel}->{"http://foo.tld/foobar/"}->{hello},
+        "The RSS Must Flow",
+        "Parsing 2.0 - element in a different namespace contained in a channel",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:alterrss="http://purl.org/rss/1.0/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:my="http://purl.org/my/rss/module/"
+ xmlns:admin="http://webns.net/mvcb/"
+>
+
+<channel rdf:about="http://example.com/" xmlns="">
+<title>Test 1.0 Feed</title>
+<link>http://example.com/</link>
+<description>To lead by example</description>
+<dc:date>2007-01-19T14:21:18+0200</dc:date>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://example.com/2007/01/19" />
+ </rdf:Seq>
+</items>
+<image rdf:resource="http://example.com/example.gif" />
+<textinput rdf:resource="http://example.com/search.pl" />
+<foo>Placebo is here</foo>
+</channel>
+
+<image rdf:about="http://example.com/example.gif">
+<title>Test Image</title>
+<url>http://example.com/example.gif</url>
+<link>http://example.com/</link>
+</image>
+
+<item rdf:about="http://example.com/2007/01/19">
+<title>This is an item</title>
+<link>http://example.com/2007/01/19</link>
+<description>Yadda &#x26; yadda &#x26; yadda</description>
+<dc:creator>joeuser@example.com</dc:creator>
+</item>
+
+<textinput rdf:about="http://example.com/search.pl">
+<title>Search</title>
+<description>Search for an example</description>
+<name>q</name>
+<link>http://example.com/search.pl</link>
+</textinput>
+
+</rdf:RDF>
+EOF
+
+    # TEST
+    is ($rss_parser->{channel}->{""}->{foo},
+        "Placebo is here",
+        "Parsing 1.0 - element in a null namespace contained in a channel",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:admin="http://webns.net/mvcb/"
+>
+
+<channel rdf:about="http://freshmeat.net">
+<title>freshmeat.net</title>
+<link>http://freshmeat.net</link>
+<description>Linux software</description>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://freshmeat.net/news/1999/06/21/930003829.html" />
+  <rdf:li rdf:resource="http://jungle.tld/Enter/" />
+ </rdf:Seq>
+</items>
+</channel>
+
+<item rdf:about="http://freshmeat.net/news/1999/06/21/930003829.html">
+<title>GTKeyboard 0.85</title>
+<link>http://freshmeat.net/news/1999/06/21/930003829.html</link>
+</item>
+
+<item rdf:about="http://jungle.tld/Enter/">
+<title>In the Jungle</title>
+<link>http://jungle.tld/Enter/</link>
+<taxo:topics>
+  <rdf:Bag>
+    <rdf:li resource="Foo" />
+    <rdf:li resource="Loom" />
+    <rdf:li resource="Hello" />
+    <rdf:li resource="myowA" />
+  </rdf:Bag>
+</taxo:topics>
+</item>
+
+</rdf:RDF>
+EOF
+
+    # TEST
+    is_deeply ($rss_parser->{items}->[1]->{taxo},
+        ["Foo", "Loom", "Hello", "myowA"],
+        "Parsing 1.0 - taxo items",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:admin="http://webns.net/mvcb/"
+>
+
+<channel rdf:about="http://freshmeat.net">
+<title>freshmeat.net</title>
+<link>http://freshmeat.net</link>
+<description>Linux software</description>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://freshmeat.net/news/1999/06/21/930003829.html" />
+  <rdf:li rdf:resource="http://jungle.tld/Enter/" />
+ </rdf:Seq>
+</items>
+</channel>
+
+<item rdf:about="http://freshmeat.net/news/1999/06/21/930003829.html">
+<title>GTKeyboard 0.85</title>
+<link>http://freshmeat.net/news/1999/06/21/930003829.html</link>
+</item>
+
+<item rdf:about="http://jungle.tld/Enter/">
+<title>In the Jungle</title>
+<link>http://jungle.tld/Enter/</link>
+<taxo:topics>
+  <rdf:Bag>
+    <rdf:li resource="Everybody" />
+    <rdf:li resource="needs" />
+    <dc:hello />
+    <rdf:li resource="a" />
+    <rdf:li resource="[[[HUG]]]" />
+  </rdf:Bag>
+</taxo:topics>
+</item>
+
+</rdf:RDF>
+EOF
+
+    # TEST
+    is_deeply ($rss_parser->{items}->[1]->{taxo},
+        ["Everybody", "needs", "a", "[[[HUG]]]"],
+        "Parsing 1.0 - taxo bag in <item> with junk elements",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:admin="http://webns.net/mvcb/"
+>
+
+<channel rdf:about="http://freshmeat.net">
+<title>freshmeat.net</title>
+<link>http://freshmeat.net</link>
+<description>Linux software</description>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://freshmeat.net/news/1999/06/21/930003829.html" />
+  <rdf:li rdf:resource="http://jungle.tld/Enter/" />
+ </rdf:Seq>
+</items>
+<taxo:topics>
+  <rdf:Bag>
+    <rdf:li resource="Elastic" />
+    <rdf:li resource="Plastic" />
+    <rdf:li resource="stochastic" />
+    <rdf:li resource="dynamic^^K" />
+  </rdf:Bag>
+</taxo:topics>
+</channel>
+
+<item rdf:about="http://freshmeat.net/news/1999/06/21/930003829.html">
+<title>GTKeyboard 0.85</title>
+<link>http://freshmeat.net/news/1999/06/21/930003829.html</link>
+</item>
+
+<item rdf:about="http://jungle.tld/Enter/">
+<title>In the Jungle</title>
+<link>http://jungle.tld/Enter/</link>
+<taxo:topics>
+  <rdf:Bag>
+    <rdf:li resource="Foo" />
+    <rdf:li resource="Loom" />
+    <rdf:li resource="Hello" />
+    <rdf:li resource="myowA" />
+  </rdf:Bag>
+</taxo:topics>
+</item>
+
+</rdf:RDF>
+EOF
+
+    # TEST
+    is_deeply ($rss_parser->{channel}->{taxo},
+        ["Elastic", "Plastic", "stochastic", "dynamic^^K"],
+        "Parsing 1.0 - taxo items in channel",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:admin="http://webns.net/mvcb/"
+>
+
+<channel rdf:about="http://freshmeat.net">
+<title>freshmeat.net</title>
+<link>http://freshmeat.net</link>
+<description>Linux software</description>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://freshmeat.net/news/1999/06/21/930003829.html" />
+  <rdf:li rdf:resource="http://jungle.tld/Enter/" />
+ </rdf:Seq>
+</items>
+<taxo:topics>
+  <rdf:Bag>
+    <rdf:li resource="Elastic" />
+    <rdf:li resource="Plastic" />
+    <rdf:li resource="stochastic" />
+    <dc:hello />
+    <rdf:li resource="dynamic^^K" />
+  </rdf:Bag>
+</taxo:topics>
+</channel>
+
+<item rdf:about="http://freshmeat.net/news/1999/06/21/930003829.html">
+<title>GTKeyboard 0.85</title>
+<link>http://freshmeat.net/news/1999/06/21/930003829.html</link>
+</item>
+
+<item rdf:about="http://jungle.tld/Enter/">
+<title>In the Jungle</title>
+<link>http://jungle.tld/Enter/</link>
+<taxo:topics>
+  <rdf:Bag>
+    <rdf:li resource="Foo" />
+    <rdf:li resource="Loom" />
+    <rdf:li resource="Hello" />
+    <rdf:li resource="myowA" />
+  </rdf:Bag>
+</taxo:topics>
+</item>
+
+</rdf:RDF>
+EOF
+
+    # TEST
+    is_deeply ($rss_parser->{channel}->{taxo},
+        ["Elastic", "Plastic", "stochastic", "dynamic^^K"],
+        "Parsing 1.0 - taxo items in channel with junk items",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:admin="http://webns.net/mvcb/"
+>
+
+<channel rdf:about="http://freshmeat.net">
+<title>freshmeat.net</title>
+<link>http://freshmeat.net</link>
+<description>Linux software</description>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://freshmeat.net/news/1999/06/21/930003829.html" />
+  <rdf:li rdf:resource="http://jungle.tld/Enter/" />
+ </rdf:Seq>
+</items>
+<taxo:topics>
+  <rdf:Bag>
+    <rdf:li resource="Elastic" />
+    <rdf:li resource="Plastic" />
+    <rdf:li resource="stochastic" />
+    <dc:hello />
+    <rdf:li resource="dynamic^^K" />
+  </rdf:Bag>
+</taxo:topics>
+</channel>
+
+<item rdf:about="http://freshmeat.net/news/1999/06/21/930003829.html">
+<title>GTKeyboard 0.85</title>
+<link>http://freshmeat.net/news/1999/06/21/930003829.html</link>
+</item>
+
+<item rdf:about="http://jungle.tld/Enter/">
+<title>In the Jungle</title>
+<link>http://jungle.tld/Enter/</link>
+<admin:hello>Gow</admin:hello>
+</item>
+
+</rdf:RDF>
+EOF
+
+    # TEST
+    is ($rss_parser->{items}->[1]->{"http://webns.net/mvcb/"}->{hello},
+        "Gow",
+        "Parsing 1.0 - Elements inside <item> that don't exist in \%rdf_resource_fields",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:admin="http://webns.net/mvcb/"
+>
+
+<channel rdf:about="http://freshmeat.net">
+<title>freshmeat.net</title>
+<link>http://freshmeat.net</link>
+<description>Linux software</description>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://freshmeat.net/news/1999/06/21/930003829.html" />
+  <rdf:li rdf:resource="http://jungle.tld/Enter/" />
+ </rdf:Seq>
+</items>
+<taxo:topics>
+  <rdf:Bag>
+    <rdf:li resource="Elastic" />
+    <rdf:li resource="Plastic" />
+    <rdf:li resource="stochastic" />
+    <dc:hello />
+    <rdf:li resource="dynamic^^K" />
+  </rdf:Bag>
+</taxo:topics>
+</channel>
+
+<admin:generatorAgent>Gow</admin:generatorAgent>
+<item rdf:about="http://freshmeat.net/news/1999/06/21/930003829.html">
+<title>GTKeyboard 0.85</title>
+<link>http://freshmeat.net/news/1999/06/21/930003829.html</link>
+</item>
+
+<item rdf:about="http://jungle.tld/Enter/">
+<title>In the Jungle</title>
+<link>http://jungle.tld/Enter/</link>
+</item>
+
+</rdf:RDF>
+EOF
+
+    # TEST
+    ok ((!grep { exists($_->{"http://webns.net/mvcb/"}->{generatorAgent}) }
+        @{$rss_parser->{items}}),
+        "Parsing 1.0 - Elements that exist in \%rdf_resource_fields but not inside item",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:admin="http://webns.net/mvcb/"
+>
+
+<channel rdf:about="http://freshmeat.net">
+<title>freshmeat.net</title>
+<link>http://freshmeat.net</link>
+<description>Linux software</description>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://freshmeat.net/news/1999/06/21/930003829.html" />
+  <rdf:li rdf:resource="http://jungle.tld/Enter/" />
+ </rdf:Seq>
+</items>
+<taxo:topics>
+  <rdf:Bag>
+    <rdf:li resource="Elastic" />
+    <rdf:li resource="Plastic" />
+    <rdf:li resource="stochastic" />
+    <dc:hello />
+    <rdf:li resource="dynamic^^K" />
+  </rdf:Bag>
+</taxo:topics>
+</channel>
+
+<item rdf:about="http://freshmeat.net/news/1999/06/21/930003829.html">
+<title>GTKeyboard 0.85</title>
+<link>http://freshmeat.net/news/1999/06/21/930003829.html</link>
+</item>
+
+<item rdf:about="http://jungle.tld/Enter/">
+<title>In the Jungle</title>
+<link>http://jungle.tld/Enter/</link>
+</item>
+<enclosure foo="bar" good="them" />
+
+</rdf:RDF>
+EOF
+
+    # TEST
+    ok ((!grep { exists($_->{enclosure}) }
+        @{$rss_parser->{items}}),
+        "Parsing 1.0 - Testing \%empty_ok_elements",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:admin="http://webns.net/mvcb/"
+ xmlns:foo="http://foobar.tld/foobardom/"
+>
+
+<channel rdf:about="http://freshmeat.net">
+<title>freshmeat.net</title>
+<link>http://freshmeat.net</link>
+<description>Linux software</description>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://freshmeat.net/news/1999/06/21/930003829.html" />
+  <rdf:li rdf:resource="http://jungle.tld/Enter/" />
+ </rdf:Seq>
+</items>
+<taxo:topics>
+  <rdf:Bag>
+    <rdf:li resource="Elastic" />
+    <rdf:li resource="Plastic" />
+    <rdf:li resource="stochastic" />
+    <rdf:li resource="dynamic^^K" />
+  </rdf:Bag>
+</taxo:topics>
+</channel>
+
+<item rdf:about="http://freshmeat.net/news/1999/06/21/930003829.html">
+<title>GTKeyboard 0.85</title>
+<link>http://freshmeat.net/news/1999/06/21/930003829.html</link>
+</item>
+
+<foo:item rdf:about="http://jungle.tld/Enter/">
+<title>In the Jungle</title>
+<link>http://jungle.tld/Enter/</link>
+</foo:item>
+
+</rdf:RDF>
+EOF
+
+    # TEST
+    is (scalar(@{$rss_parser->{items}}), 1, "Parse 1.0 with item in a different NS - There is 1 item");
+
+    # TEST
+    is ($rss_parser->{items}->[0]->{title}, "GTKeyboard 0.85", "Parse 1.0 with item in a different NS - it is not the item in the other NS");
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:admin="http://webns.net/mvcb/"
+ xmlns:foo="http://foobar.tld/foobardom/"
+>
+
+<channel rdf:about="http://freshmeat.net">
+<title>freshmeat.net</title>
+<link>http://freshmeat.net</link>
+<description>Linux software</description>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://freshmeat.net/news/1999/06/21/930003829.html" />
+  <rdf:li rdf:resource="http://jungle.tld/Enter/" />
+ </rdf:Seq>
+</items>
+<taxo:topics>
+  <rdf:Bag>
+    <rdf:li resource="Elastic" />
+    <rdf:li resource="Plastic" />
+    <rdf:li resource="stochastic" />
+    <rdf:li resource="dynamic^^K" />
+  </rdf:Bag>
+</taxo:topics>
+</channel>
+
+<item xmlns="">
+<title>In the Jungle</title>
+<link>http://jungle.tld/Enter/</link>
+</item>
+
+</rdf:RDF>
+EOF
+
+    # TEST
+    is (scalar(@{$rss_parser->{items}}), 0, "Parse 1.0 with item in null namespace");
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:my="http://purl.org/my/rss/module/"
+ xmlns:admin="http://webns.net/mvcb/"
+>
+
+<channel rdf:about="http://example.com/">
+<title>Test 1.0 Feed</title>
+<link>http://example.com/</link>
+<description>To lead by example</description>
+<dc:date>2007-01-19T14:21:18+0200</dc:date>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://example.com/2007/01/19" />
+ </rdf:Seq>
+</items>
+<image rdf:resource="http://example.com/example.gif" />
+<textinput rdf:resource="http://example.com/search.pl" />
+</channel>
+
+<image rdf:about="http://example.com/example.gif" xmlns="">
+<title>Test Image</title>
+<url>http://example.com/example.gif</url>
+<link>http://example.com/</link>
+<dc:date>5 Sep 2006</dc:date>
+</image>
+
+<item rdf:about="http://example.com/2007/01/19">
+<title>This is an item</title>
+<link>http://example.com/2007/01/19</link>
+<description>Yadda &#x26; yadda &#x26; yadda</description>
+<dc:creator>joeuser@example.com</dc:creator>
+</item>
+
+<textinput rdf:about="http://example.com/search.pl">
+<title>Search</title>
+<description>Search for an example</description>
+<name>q</name>
+<link>http://example.com/search.pl</link>
+</textinput>
+
+</rdf:RDF>
+EOF
+
+    # TEST
+    is ($rss_parser->{image}->{dc}->{date},
+        "5 Sep 2006",
+        "Parsing 1.0 - Known module in image",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:my="http://purl.org/my/rss/module/"
+ xmlns:admin="http://webns.net/mvcb/"
+>
+
+<channel rdf:about="http://example.com/">
+<title>Test 1.0 Feed</title>
+<link>http://example.com/</link>
+<description>To lead by example</description>
+<dc:date>2007-01-19T14:21:18+0200</dc:date>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://example.com/2007/01/19" />
+ </rdf:Seq>
+</items>
+<image rdf:resource="http://example.com/example.gif" />
+<textinput rdf:resource="http://example.com/search.pl" />
+</channel>
+
+<image rdf:about="http://example.com/example.gif" xmlns="">
+<title>Test Image</title>
+<url>http://example.com/example.gif</url>
+<link>http://example.com/</link>
+</image>
+
+<item rdf:about="http://example.com/2007/01/19">
+<title>This is an item</title>
+<link>http://example.com/2007/01/19</link>
+<description>Yadda &#x26; yadda &#x26; yadda</description>
+<dc:creator>joeuser@example.com</dc:creator>
+</item>
+
+<textinput rdf:about="http://example.com/search.pl">
+<title>Search</title>
+<description>Search for an example</description>
+<name>q</name>
+<link>http://example.com/search.pl</link>
+<dc:date>5 May 1977</dc:date>
+</textinput>
+
+</rdf:RDF>
+EOF
+
+    # TEST
+    is ($rss_parser->{textinput}->{dc}->{date},
+        "5 May 1977",
+        "Parsing 1.0 - Known module in a textinput",
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "2.0");
+
+my $xml_text = <<'EOF';
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rss
+ xmlns:blogChannel="http://backend.userland.com/blogChannelModule"
+ xmlns:foo="http://foo.tld/foobar/"
+>
+
+<channel>
+<title>Test 2.0 Feed</title>
+<link>http://example.com/</link>
+<description></description>
+<language>en-us</language>
+<copyright>Copyright 2002</copyright>
+<pubDate>2007-01-19T14:21:43+0200</pubDate>
+<lastBuildDate>2007-01-19T14:21:43+0200</lastBuildDate>
+<docs>http://backend.userland.com/rss</docs>
+<managingEditor>editor@example.com</managingEditor>
+<webMaster>webmaster@example.com</webMaster>
+<category>MyCategory</category>
+<generator>XML::RSS Test</generator>
+<ttl>60</ttl>
+
+<image>
+<title>Test Image</title>
+<url>http://example.com/example.gif</url>
+<link>http://example.com/</link>
+<height>25</height>
+<description>Test Image</description>
+<foo:hello>Hi there!</foo:hello>
+</image>
+
+<item>
+<title>This is an item</title>
+<link>http://example.com/2007/01/19</link>
+<description>Yadda yadda yadda - R&#x26;D;</description>
+<author>joeuser@example.com</author>
+<category>MyCategory</category>
+<comments>http://example.com/2007/01/19/comments.html</comments>
+<guid isPermaLink="true">http://example.com/2007/01/19</guid>
+<pubDate>Fri 19 Jan 2007 02:21:43 PM IST GMT</pubDate>
+<source url="http://example.com">my brain</source>
+<enclosure url="http://127.0.0.1/torrents/The_Passion_of_Dave_Winer.torrent" type="application/x-bittorrent" />
+</item>
+
+</channel>
+</rss>
+EOF
+
+    eval {
+        $rss_parser->parse($xml_text);
+    };
+
+    # TEST
+    ok ($@ =~ m{\AMalformed RSS},
+        "Checking for thrown exception on missing version attribute"
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    my $xml_text = <<'EOF';
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:my="http://purl.org/my/rss/module/"
+ xmlns:admin="http://webns.net/mvcb/"
+>
+
+<channel rdf:about="http://example.com/">
+<title>Test 1.0 Feed</title>
+<link>http://example.com/</link>
+<description>To lead by example</description>
+<dc:date>2007-01-19T14:21:18+0200</dc:date>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://example.com/2007/01/19" />
+ </rdf:Seq>
+</items>
+<image rdf:resource="http://example.com/example.gif" />
+<textinput rdf:resource="http://example.com/search.pl" />
+</channel>
+
+<image rdf:about="http://example.com/example.gif" xmlns="">
+<title>Test Image</title>
+<url>http://example.com/example.gif</url>
+<link>http://example.com/</link>
+</image>
+
+<item rdf:about="http://example.com/2007/01/19">
+<title>This is an item</title>
+<link>http://example.com/2007/01/19</link>
+<description>Yadda &#x26; yadda &#x26; yadda</description>
+<dc:creator>joeuser@example.com</dc:creator>
+</item>
+
+<textinput rdf:about="http://example.com/search.pl">
+<title>Search</title>
+<description>Search for an example</description>
+<name>q</name>
+<link>http://example.com/search.pl</link>
+<dc:date>5 May 1977</dc:date>
+</textinput>
+
+</rdf:RDF>
+EOF
+
+    eval {
+        $rss_parser->parse($xml_text);
+    };
+
+    # TEST
+    ok ($@ =~ m{\AMalformed RSS: invalid version},
+        "Checking for thrown exception on missing version attribute"
+    );
+
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:admin="http://webns.net/mvcb/"
+ xmlns:foo="http://foobar.tld/foobardom/"
+>
+
+<channel rdf:about="http://freshmeat.net">
+<title>freshmeat.net</title>
+<link>http://freshmeat.net</link>
+<description>Linux software</description>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://freshmeat.net/news/1999/06/21/930003829.html" />
+  <rdf:li rdf:resource="http://jungle.tld/Enter/" />
+ </rdf:Seq>
+</items>
+<taxo:topics>
+  <rdf:Bag>
+    <rdf:li resource="Elastic" />
+    <rdf:li resource="Plastic" />
+    <rdf:li resource="stochastic" />
+    <rdf:li resource="dynamic^^K" />
+  </rdf:Bag>
+</taxo:topics>
+</channel>
+
+<item rdf:about="http://freshmeat.net/news/1999/06/21/930003829.html">
+<title>GTKeyboard 0.85</title>
+<link>http://freshmeat.net/news/1999/06/21/930003829.html</link>
+<item rdf:about="http://fooque.tld/">
+</item>
+</item>
+</rdf:RDF>
+EOF
+
+    # TEST
+    is (scalar(@{$rss_parser->{items}}), 1, "Parse 1.0 with nested <item>");
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "2.0");
+
+my $xml_text = <<'EOF';
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rss version="2.0"
+ xmlns:blogChannel="http://backend.userland.com/blogChannelModule"
+ xmlns:foo="http://foo.tld/foobar/"
+ xmlns:anno="http://purl.org/rss/1.0/modules/annotate/"
+>
+
+<channel>
+<title>Test 2.0 Feed</title>
+<link>http://example.com/</link>
+<description>Lambda</description>
+<anno:reference resource="Aloha" />
+
+</channel>
+</rss>
+EOF
+
+    $rss_parser->parse($xml_text);
+
+    my $channel = $rss_parser->{channel};
+
+    # Sanitize the channel out of uninitialised keys.
+    foreach my $field (qw(
+        category
+        channel
+        cloud
+        copyright
+        docs
+        generator
+        image
+        language
+        lastBuildDate
+        managingEditor
+        pubDate
+        skipDays
+        skipHours
+        textinput
+        ttl
+        webMaster
+    ))
+    {
+        delete $channel->{$field};
+    }
+    # TEST
+    is_deeply($channel,
+        {
+            title => "Test 2.0 Feed",
+            link => "http://example.com/",
+            description => "Lambda",
+            "http://purl.org/rss/1.0/modules/annotate/" =>
+            {
+                reference => "Aloha",
+            },
+        },
+        "Testing for non-moduled-namespaced element inside the channel."
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "2.0");
+
+my $xml_text = <<'EOF';
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rss version="2.0"
+ xmlns:blogChannel="http://backend.userland.com/blogChannelModule"
+ xmlns:foo="http://foo.tld/foobar/"
+ xmlns:anno="http://purl.org/rss/1.0/modules/annotate/"
+>
+
+<channel>
+<title>Test 2.0 Feed</title>
+<link>http://example.com/</link>
+<description>Lambda</description>
+
+
+<item>
+<title>This is an item</title>
+<link>http://example.com/2007/01/19</link>
+<description>Yadda yadda yadda</description>
+<author>joeuser@example.com</author>
+<anno:reference resource="Aloha" />
+</item>
+
+</channel>
+
+</rss>
+EOF
+
+    $rss_parser->parse($xml_text);
+
+    my $item = $rss_parser->{items}->[0];
+
+    # Sanitize the channel out of uninitialised keys.
+    foreach my $field (qw(
+        item
+    ))
+    {
+        delete $item->{$field};
+    }
+    # TEST
+    is_deeply($item,
+        {
+            title => "This is an item",
+            link => "http://example.com/2007/01/19",
+            description => "Yadda yadda yadda",
+            author => "joeuser\@example.com",
+            "http://purl.org/rss/1.0/modules/annotate/" =>
+            {
+                reference => "Aloha",
+            },
+        },
+        "Testing for non-moduled-namespaced element inside an item."
+    );
+}
+
+{
+    my $rss_parser = XML::RSS->new(version => "1.0");
+
+    $rss_parser->parse(<<'EOF');
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:my="http://purl.org/my/rss/module/"
+ xmlns:admin="http://webns.net/mvcb/"
+>
+
+<channel rdf:about="http://example.com/">
+<title>Test 1.0 Feed</title>
+<link>http://example.com/</link>
+<description>To lead by example</description>
+<dc:date>2007-01-19T14:21:18+0200</dc:date>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="http://example.com/2007/01/19" />
+ </rdf:Seq>
+</items>
+<image rdf:resource="http://example.com/example.gif" />
+<textinput rdf:resource="http://example.com/search.pl" />
+</channel>
+
+<image rdf:about="http://example.com/example.gif" xmlns="">
+<title>Test Image</title>
+<url>http://example.com/example.gif</url>
+<link>http://example.com/</link>
+<dc:date>5 Sep 2006</dc:date>
+</image>
+
+<item rdf:about="http://example.com/2007/01/19">
+<title>This is an item</title>
+<link>http://example.com/2007/01/19</link>
+<description>Yadda &#x26; yadda &#x26; yadda</description>
+<dc:creator>joeuser@example.com</dc:creator>
+<admin:generatorAgent resource="XmlRssGenKon" />
+</item>
+
+<textinput rdf:about="http://example.com/search.pl">
+<title>Search</title>
+<description>Search for an example</description>
+<name>q</name>
+<link>http://example.com/search.pl</link>
+</textinput>
+
+</rdf:RDF>
+EOF
+
+    # TEST
+    is ($rss_parser->{items}->[0]->{admin}->{generatorAgent},
+        "XmlRssGenKon",
+        "Parsing 1.0 - known module rdf_resource_field",
+    );
+}
+

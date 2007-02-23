@@ -11,20 +11,23 @@ push(@extras,
      AUTHOR        => ' Ask Bjoern Hansen <ask@develooper.com>')
     if ($ExtUtils::MakeMaker::Version >= 5.4301);
 
-sub ExtUtils::MM_Any::test_via_harness {
-    my($self, $perl, $tests) = @_;
-    
-    return qq|\t$perl "-MTest::Manifest" | .
-      qq|"-e" "run_t_manifest(\$(TEST_VERBOSE), '\$(INST_LIB)', | .
-        qq|'\$(INST_ARCHLIB)')"\n|;
+{
+    package MY;
+
+    sub test_via_harness {
+        my($self, $perl, $tests) = @_;
+        
+        return qq|\t$perl "-MTest::Manifest" | .
+          qq|"-e" "run_t_manifest(\$(TEST_VERBOSE), '\$(INST_LIB)', | .
+            qq|'\$(INST_ARCHLIB)')"\n|;
+    }
 }
 
 sub MY::postamble {
     return <<'MAKE_FRAG';
 
 runtest: pure_all
-	perl -MFile::Spec -MTest::Run::CmdLine::Iface -MTest::Manifest -e \
-        "local @INC = @INC;	unshift @INC, map { File::Spec->rel2abs(\$$_) } ('$(INST_LIB)', '$(INST_ARCHLIB)'); Test::Run::CmdLine::Iface->new({test_files => [Test::Manifest::get_t_files()]})->run();"
+	$(PERLRUNINST) -Itestlib -MTest::Run::CmdLine::WithTestManifest -e "Test::Run::CmdLine::WithTestManifest::run_t_manifest($(TEST_VERBOSE), '$(INST_LIB)', '$(INST_ARCHLIB)', $(TEST_LEVEL));"
 
 distruntest: distdir
 	cd $(DISTVNAME) && $(ABSPERLRUN) Makefile.PL
@@ -46,6 +49,6 @@ WriteMakefile(
                                  'DateTime::Format::Mail' => 0,
                                  'DateTime::Format::W3CDTF' => 0,
                                 },
-              'clean'        => { FILES => 'XML-RSS-* t/*-generated.xml' },
+              'clean'        => { FILES => 'XML-RSS-* t/generated/*.xml' },
               @extras
 );
