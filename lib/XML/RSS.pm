@@ -14,7 +14,7 @@ use XML::RSS::Private::Output::V2_0;
 
 use vars qw($VERSION $AUTOLOAD @ISA $AUTO_ADD);
 
-$VERSION = '1.31';
+$VERSION = '1.32';
 
 $AUTO_ADD = 0;
 
@@ -790,7 +790,9 @@ sub _handle_start {
     }
     elsif ($el eq 'guid') {
         $self->{'items'}->[$self->{num_items} - 1]->{'isPermaLink'} =
-          !(exists($attribs{'isPermaLink'}) && ($attribs{'isPermaLink'} eq 'false'));
+          (exists($attribs{'isPermaLink'}) && 
+              (lc($attribs{'isPermaLink'}) eq 'true')
+          );
 
         # beginning of taxo li element in item element
         #'http://purl.org/rss/1.0/modules/taxonomy/' => 'taxo'
@@ -1293,7 +1295,7 @@ XML::RSS - creates and updates RSS files
  # there are already 15 items
  my $rss = new XML::RSS;
  $rss->parsefile("fm.rdf");
- pop(@{$rss->{'items'}}) if (@{$rss->{'items'}} == 15);
+ shift(@{$rss->{'items'}}) if (@{$rss->{'items'}} == 15);
  $rss->add_item(title => "MpegTV Player (mtv) 1.0.9.7",
                 link  => "http://freshmeat.net/news/1999/06/21/930003958.html",
                 mode  => 'insert'
@@ -1319,13 +1321,13 @@ RDF Site Summary (RSS) files. This distribution also contains many
 examples that allow you to generate HTML from an RSS, convert between
 0.9, 0.91, and 1.0 version, and other nifty things.
 This might be helpful if you want to include news feeds on your Web
-site from sources like Slashot and Freshmeat or if you want to syndicate
+site from sources like Slashdot and Freshmeat or if you want to syndicate
 your own content.
 
 XML::RSS currently supports 0.9, 0.91, and 1.0 versions of RSS.
-See http://my.netscape.com/publish/help/mnn20/quickstart.html
-for information on RSS 0.91. See http://my.netscape.com/publish/help/
-for RSS 0.9. See http://purl.org/rss/1.0/ for RSS 1.0.
+See http://backend.userland.com/rss091 for information on RSS 0.91. 
+See http://www.purplepages.ie/RSS/netscape/rss0.90.html for RSS 0.9.
+See http://web.resource.org/rss/1.0/ for RSS 1.0.
 
 RSS was originally developed by Netscape as the format for
 Netscape Netcenter channels, however, many Web sites have since
