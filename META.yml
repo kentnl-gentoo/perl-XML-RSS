@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                XML-RSS
-version:             1.32
+version:             1.33
 abstract:            ~
 license:             ~
 generated_by:        ExtUtils::MakeMaker version 6.36
