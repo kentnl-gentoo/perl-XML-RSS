@@ -14,7 +14,7 @@ use XML::RSS::Private::Output::V2_0;
 
 use vars qw($VERSION $AUTOLOAD @ISA $AUTO_ADD);
 
-$VERSION = '1.33';
+$VERSION = '1.34';
 
 $AUTO_ADD = 0;
 
@@ -1304,11 +1304,16 @@ XML::RSS - creates and updates RSS files
  # or save it to a file
  $rss->save("fm.rdf");
 
- # insert an item into an RSS file and removes the oldest item if
- # there are already 15 items
+ # insert an item into an RSS file and removes the oldest ones if
+ # there are already 15 items or more
  my $rss = new XML::RSS;
  $rss->parsefile("fm.rdf");
- shift(@{$rss->{'items'}}) if (@{$rss->{'items'}} == 15);
+
+ while (@{$rss->{'items'}} >= 15)
+ {
+     pop(@{$rss->{'items'});
+ }
+
  $rss->add_item(title => "MpegTV Player (mtv) 1.0.9.7",
                 link  => "http://freshmeat.net/news/1999/06/21/930003958.html",
                 mode  => 'insert'
@@ -1358,7 +1363,7 @@ output=>$output, stylesheet=>$stylesheet_url)
 Constructor for XML::RSS. It returns a reference to an XML::RSS object.
 You may also pass the RSS version and the XML encoding to use. The default
 B<version> is 1.0. The default B<encoding> is UTF-8. You may also specify
-the B<output> format regarless of the input version. This comes in handy
+the B<output> format regardless of the input version. This comes in handy
 when you want to convert RSS between versions. The XML::RSS modules
 will convert between any of the formats.  If you set <encode_output> XML::RSS
 will make sure to encode any entities in generated RSS.  This is now on by
