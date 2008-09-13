@@ -1,3 +1,5 @@
+use 5.006;
+
 use ExtUtils::MakeMaker;
 @extras = ();
 
@@ -10,6 +12,13 @@ push(@extras,
      ABSTRACT_FROM => 'lib/XML/RSS.pm',
      AUTHOR        => ' Ask Bjoern Hansen <ask@develooper.com>')
     if ($ExtUtils::MakeMaker::Version >= 5.4301);
+
+if ($ExtUtils::MakeMaker::Version >= 6.36)
+{
+    push(@extras,
+        LICENSE => "perl",
+    );
+}
 
 {
     package MY;
@@ -50,5 +59,6 @@ WriteMakefile(
                                  'DateTime::Format::W3CDTF' => 0,
                                 },
               'clean'        => { FILES => 'XML-RSS-* t/generated/*.xml' },
+              'PL_FILES' => {},
               @extras
 );
