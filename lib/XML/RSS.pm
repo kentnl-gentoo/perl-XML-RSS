@@ -17,7 +17,7 @@ use XML::RSS::Private::Output::V2_0;
 
 use vars qw($VERSION $AUTOLOAD @ISA $AUTO_ADD);
 
-$VERSION = '1.35';
+$VERSION = '1.36';
 
 $AUTO_ADD = 0;
 
@@ -991,6 +991,8 @@ sub parse {
 
     $self->_auto_add_modules if $AUTO_ADD;
     $self->{version} = $self->{_internal}->{version};
+
+    return $self;
 }
 
 sub parsefile {
@@ -1008,6 +1010,8 @@ sub parsefile {
 
     $self->_auto_add_modules if $AUTO_ADD;
     $self->{version} = $self->{_internal}->{version};
+
+    return $self;
 }
 
 # Check if Perl supports the :encoding layer in File I/O.
@@ -1429,7 +1433,9 @@ is for B<channel()>.
 
 =item parse ($string)
 
-Parses an RDF Site Summary which is passed into B<parse()> as the first parameter.
+Parses an RDF Site Summary which is passed into B<parse()> as the first 
+parameter. Returns the instance of the object so one can say 
+C<<$rss->parse($string)->other_method()>>.
 
 See the add_module() method for instructions on automatically adding
 modules as a string is parsed.
@@ -1503,7 +1509,7 @@ attributes such as title, link, and description.  The only difference
 is the compartmentalization of their key/value paris in a second-level
 hash.
 
-  $rss->add_item (title=>$title, link=>$link, dc=>{ subject=>$subject, creator=>$creator });
+  $rss->add_item (title=>$title, link=>$link, dc=>{ subject=>$subject, creator=>$creator, date=>$date });
 
 For elements of the Dublin Core module, use the key 'dc'.  For elements
 of the Syndication module, 'syn'.  For elements of the Taxonomy module,
