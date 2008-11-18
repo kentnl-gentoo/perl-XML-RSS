@@ -1,5 +1,16 @@
 Revision history for Perl module XML::RSS
 
+1.37 - November 18, 2008
+    - Extracted the common parts of parse() and parsefile() into one
+    method (Refactoring - Shlomi Fish)
+    - Incorporated a modified version of a patch from Simon Wistow to
+    add support for the "xml:base" attribute.
+    - Renamed t/items-are-0.t into the more descriptive 
+    t/test-generated-items.t , to highlight its significance and make
+    it easier to notice.
+    - Enabled backwards-compatibility mode for the "description" item
+    to not become a hash-ref by default if xml:base is specified.
+
 1.36 - October 7, 2008
     - ->parse() now explicitly returns $self.
         - http://rt.cpan.org/Public/Bug/Display.html?id=34914

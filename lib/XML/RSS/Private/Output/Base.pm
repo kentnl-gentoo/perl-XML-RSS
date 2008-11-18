@@ -79,6 +79,7 @@ sub _encode {
 sub _default_encode {
     my ($self, $text) = @_;
 
+    #return "" unless defined $text;
     if (!defined($text)) {
         confess "\$text is undefined in XML::RSS::_encode(). We don't know how " . "to handle it!";
     }
@@ -107,8 +108,21 @@ sub _out {
 
 sub _out_tag {
     my ($self, $tag, $inner) = @_;
-
-    return $self->_out("<$tag>" . $self->_encode($inner) . "</$tag>\n");
+    my $content = $inner;
+    my $attr    = "";
+    if (ref($inner) eq 'HASH') {
+        my %inner_copy = %$inner;
+        $content = delete $inner_copy{content}; 
+        foreach my $key (keys %inner_copy) {
+            my $value = $inner->{$key};
+            if (defined($value)) {
+                $attr .= " " . $self->_encode($key) . qq{="}
+                    . $self->_encode($value) . '"'
+                    ;
+            }
+        }
+    }
+    return $self->_out("<$tag$attr>" . $self->_encode($content) . "</$tag>\n");
 }
 
 # Remove non-alphanumeric elements and return the modified string.
@@ -214,7 +228,7 @@ sub _start_top_elem {
     my ($self, $tag, $about_sub) = @_;
     
     my $about = $self->_get_top_elem_about($tag, $about_sub);
-
+    
     return $self->_out("<$tag$about>\n");
 }
 
@@ -373,7 +387,8 @@ sub _calc_dc_date {
 sub _output_xml_declaration {
     my $self = shift;
 
-    $self->_out('<?xml version="1.0" encoding="' . $self->_main->_encoding() . '"?>' . "\n");
+    my $encoding = (defined $self->_main->_encoding())? ' encoding="' . $self->_main->_encoding() . '"' : "";
+    $self->_out('<?xml version="1.0"' . $encoding . '?>' . "\n");
     if (defined(my $stylesheet = $self->_main->_stylesheet)) {
         my $style_url = $self->_encode($stylesheet);
         $self->_out(qq{<?xml-stylesheet type="text/xsl" href="$style_url"?>\n});
@@ -405,7 +420,10 @@ sub _start_image {
 sub _start_item {
     my ($self, $item) = @_;
 
-    $self->_start_top_elem("item", sub { $self->_get_item_about($item)});
+    my $tag  = "item";
+    my $base = $item->{'xml:base'};
+    $tag .= qq{ xml:base="$base"} if defined $base;
+    $self->_start_top_elem($tag, sub { $self->_get_item_about($item)});
 
     $self->_output_common_item_tags($item);
 
@@ -447,7 +465,6 @@ sub _get_item_defined {
 
 sub _out_item_desc {
     my ($self, $item) = @_;
-
     return $self->_output_def_item_tag($item, "description");
 }
 
@@ -759,8 +776,9 @@ sub _get_rdf_decl_open_tag {
 sub _get_rdf_decl
 {
     my $self = shift;
-
-    return $self->_get_rdf_decl_open_tag() .
+    my $base = $self->_main()->{'xml:base'};
+    my $base_decl = (defined $base)? qq{ xml:base="$base"\n} : "";
+    return $self->_get_rdf_decl_open_tag() . $base_decl .
         $self->_get_rdf_xmlnses() . ">\n\n";
 }
 

@@ -17,7 +17,7 @@ use XML::RSS::Private::Output::V2_0;
 
 use vars qw($VERSION $AUTOLOAD @ISA $AUTO_ADD);
 
-$VERSION = '1.36';
+$VERSION = '1.37';
 
 $AUTO_ADD = 0;
 
@@ -250,7 +250,8 @@ sub _rdf_resource_fields {
     };
 }
 
-my %empty_ok_elements = (enclosure => 1,);
+my %empty_ok_elements = (enclosure => 1);
+my %hashref_ok_elements = (description => 1);
 
 sub _get_default_modules {
     return {
@@ -309,6 +310,7 @@ sub _get_init_default_key_assignments {
         {key => "output",        default => "",},
         {key => "encoding",      default => "UTF-8",},
         {key => "encode_cb",     default => undef(),},
+        {key => "xml:base",      default => undef(),},
     ];
 }
 
@@ -351,7 +353,6 @@ sub _initialize {
     # namespaces
     $self->{namespaces}    = {};
     $self->{rss_namespace} = '';
-
     foreach my $k (@{$self->_get_init_default_key_assignments()})
     {
         my $key = $k->{key};
@@ -615,7 +616,7 @@ sub _append_text_to_elem_struct {
 
     # If it's in the default namespace
     if ($verdict) {
-        $struct->{$mapping_sub->($struct, $elem)} .= $cdata;
+        $self->_append_struct($struct, $mapping_sub->($struct, $elem), $cdata);
     }
     else {
         # If it's in another namespace
@@ -628,6 +629,15 @@ sub _append_text_to_elem_struct {
     }
 
     return;
+}
+
+sub _append_struct {
+    my ($self, $struct, $key, $cdata) = @_;
+    if (defined $struct->{$key} && ref($struct->{$key}) eq 'HASH') {
+        $struct->{$key}->{content} .= $cdata;
+    } else {
+        $struct->{$key} .= $cdata;
+    }
 }
 
 sub _return_elem {
@@ -725,7 +735,17 @@ sub _handle_dec {
     #print "ENCODING: $encoding\n";
 }
 
+sub _should_be_hashref {
+    my ($self, $el) = @_;
 
+    return
+    (
+        $empty_ok_elements{$el}
+        || ($self->_parse_options()->{'hashrefs_instead_of_strings'}
+            && $hashref_ok_elements{$el}
+        )
+    );
+}
 
 sub _handle_start {
     my $self    = shift;
@@ -733,7 +753,7 @@ sub _handle_start {
     my %attribs = @_;
 
     my $parser = $self->_parser;
-
+    
     # beginning of RSS 0.91
     if ($el eq 'rss') {
         if (exists($attribs{version})) {
@@ -743,7 +763,10 @@ sub _handle_start {
             croak "Malformed RSS: invalid version\n";
         }
 
-        # beginning of RSS 1.0 or RSS 0.9
+        # handle xml:base
+        $self->{'xml:base'} = $attribs{'base'} if exists $attribs{'base'};
+
+    # beginning of RSS 1.0 or RSS 0.9
     }
     elsif ($el eq 'RDF') {
         my @prefixes = $parser->new_ns_prefixes;
@@ -782,7 +805,10 @@ sub _handle_start {
         #    croak "Malformed RSS: invalid version\n";
         #}
 
-        # beginning of item element
+        # handle xml:base
+        $self->{'xml:base'} = $attribs{'base'} if exists $attribs{'base'};
+
+    # beginning of item element
     }
     elsif ($el eq 'item') {
 
@@ -801,6 +827,9 @@ sub _handle_start {
                 $self->{_inside_item_elem} = $parser->depth();
             }
         }
+        # handle xml:base
+        $self->{'items'}->[$self->{num_items} - 1]->{'xml:base'} = $attribs{'base'} if exists $attribs{'base'};
+
 
         # guid element is a permanent link unless isPermaLink attribute is set to false
     }
@@ -894,8 +923,9 @@ sub _handle_start {
             }
         }
     }
-    elsif ($empty_ok_elements{$el} and $self->_current_element eq 'item') {
-        $self->{items}->[$self->{num_items} - 1]->{$el} = \%attribs;
+    elsif ($self->_should_be_hashref($el) and $self->_current_element eq 'item') {
+        $attribs{'xml:base'} = delete $attribs{base} if defined $attribs{base};
+        $self->{items}->[$self->{num_items} - 1]->{$el} = \%attribs if keys %attribs;
     }
 }
 
@@ -974,12 +1004,25 @@ sub _get_parser {
     );    
 }
 
-
-sub parse {
+sub _parse_options {
     my $self = shift;
-    my $text_to_parse = shift;
+
+    if (@_) {
+        $self->{_parse_options} = shift;
+    }
+
+    return $self->{_parse_options};
+}
+
+sub _generic_parse {
+    my $self = shift;
+    my $method = shift;
+    my $arg = shift;
+    my $options = shift;
 
     $self->_reset;
+
+    $self->_parse_options($options || {});
 
     # Workaround to make sure that if we were defined with version => "2.0"
     # then we can still parse 1.0 and 0.9.x feeds correctly.
@@ -987,7 +1030,7 @@ sub parse {
         $self->{modules} = +{%{$self->_get_default_modules()}, %{$self->{modules}}};
     }
 
-    $self->_get_parser()->parse($text_to_parse);
+    $self->_get_parser()->$method($arg);
 
     $self->_auto_add_modules if $AUTO_ADD;
     $self->{version} = $self->{_internal}->{version};
@@ -995,23 +1038,20 @@ sub parse {
     return $self;
 }
 
+sub parse {
+    my $self = shift;
+    my $text_to_parse = shift;
+    my $options = shift;
+
+    return $self->_generic_parse("parse", $text_to_parse, $options);
+}
+
 sub parsefile {
     my $self = shift;
+    my $file_to_parse = shift;
+    my $options = shift;
 
-    $self->_reset;
-
-    # Workaround to make sure that if we were defined with version => "2.0"
-    # then we can still parse 1.0 and 0.9.x feeds correctly.
-    if ($self->{version} eq "2.0") {
-        $self->{modules} = +{%{$self->_get_default_modules()}, %{$self->{modules}}};
-    }
-
-    $self->_get_parser()->parsefile(shift);
-
-    $self->_auto_add_modules if $AUTO_ADD;
-    $self->{version} = $self->{_internal}->{version};
-
-    return $self;
+    return $self->_generic_parse("parsefile", $file_to_parse, $options);
 }
 
 # Check if Perl supports the :encoding layer in File I/O.
@@ -1365,7 +1405,7 @@ including news headlines, threaded measages, products catalogs, etc.
 =over 4
 
 =item new XML::RSS (version=>$version, encoding=>$encoding,
-output=>$output, stylesheet=>$stylesheet_url)
+output=>$output, stylesheet=>$stylesheet_url, 'xml:base'=>$base)
 
 Constructor for XML::RSS. It returns a reference to an XML::RSS object.
 You may also pass the RSS version and the XML encoding to use. The default
@@ -1386,6 +1426,10 @@ a reference to the C<XML::RSS::Private::Output::Base>-derived object (which
 should normally not concern you) and the text to encode. It should return
 the text to encode. If not set, then the module will encode using its
 custom encoding routine.
+
+xml:base will set an C<xml:base> property as per
+
+    http://www.w3.org/TR/xmlbase/
 
 Note that in order to encode properly, you need to handle "CDATA" sections
 properly. Look at L<XML::RSS::Private::Output::Base>'s C<_default_encode()>
@@ -1431,7 +1475,7 @@ in RSS 0.91 or optionally imported into RSS 1.0 via the rss091 namespace.
 The method for retrieving the values for the image is the same as it
 is for B<channel()>.
 
-=item parse ($string)
+=item parse ($string, \%options)
 
 Parses an RDF Site Summary which is passed into B<parse()> as the first 
 parameter. Returns the instance of the object so one can say 
@@ -1440,7 +1484,22 @@ C<<$rss->parse($string)->other_method()>>.
 See the add_module() method for instructions on automatically adding
 modules as a string is parsed.
 
-=item parsefile ($file)
+%options is a list of options that specify how parsing is to be done. The
+available options are:
+
+=over 4
+
+=item * hashrefs_instead_of_strings
+
+If true, then some items (so far "C<description>") will become hash-references
+instead of strings (with a B<content> key containing their content , B<if>
+they have XML attributes. Without this key, the attributes will be ignored
+and there will only be a string. Thus, specifying this option may break
+compatibility.
+
+=back
+
+=item parsefile ($file, \%options)
 
 Same as B<parse()> except it parses a file rather than a string.
 
