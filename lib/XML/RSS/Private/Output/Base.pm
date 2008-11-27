@@ -169,6 +169,22 @@ sub _out_defined_tag {
     return;
 }
 
+sub _out_array_tag {
+    my ($self, $tag, $inner) = @_;
+
+    if (ref($inner) eq "ARRAY") {
+        foreach my $elem (@$inner)
+        {
+            $self->_out_defined_tag($tag, $elem);
+        }
+    }
+    else {
+        $self->_out_defined_tag($tag, $inner);
+    }
+
+    return;
+}
+
 sub _out_inner_tag {
     my ($self, $params, $tag) = @_;
 
@@ -608,10 +624,95 @@ sub _out_dc_elements {
     foreach my $dc (@{$self->_get_dc_ok_fields()}) {
         next if $skip_hash->{$dc};
 
-        $self->_out_defined_tag("dc:$dc", $elem->{dc}->{$dc});
+        $self->_out_array_tag("dc:$dc", $elem->{dc}->{$dc});
     }
 
     return;
+}
+
+sub _out_module_prefix_elements_hash
+{
+    my ($self, $args) = @_;
+
+    my $prefix = $args->{prefix};
+    my $data = $args->{data};
+    my $url = $args->{url};
+    
+    while (my ($el, $value) = each(%$data)) {
+        $self->_out_module_prefix_pair(
+            {
+                %$args,
+                el => $el,
+                val => $value,
+            }
+        );
+    }
+
+    return;
+}
+
+sub _out_module_prefix_pair
+{
+    my ($self, $args) = @_;
+
+    my $prefix = $args->{prefix};
+    my $url = $args->{url};
+    
+    my $el = $args->{el};
+    my $value = $args->{val};
+
+    if ($self->_main->_is_rdf_resource($el,$url)) {
+        $self->_out(
+            qq{<${prefix}:${el} rdf:resource="} . $self->_encode($value) . qq{" />\n});
+    }
+    else {
+        $self->_out_ns_tag($prefix, $el, $value);
+    }
+
+    return;
+}
+
+sub _out_module_prefix_elements_array
+{
+    my ($self, $args) = @_;
+
+    my $prefix = $args->{prefix};
+    my $data = $args->{data};
+    my $url = $args->{url};
+
+    foreach my $element (@$data)
+    {
+        $self->_out_module_prefix_pair(
+            {
+                %$args,
+                el => $element->{'el'},
+                val => $element->{'val'},
+            }
+        )
+    }
+
+    return;
+}
+
+sub _out_module_prefix_elements
+{
+    my ($self, $args) = @_;
+
+    my $data = $args->{'data'};
+
+    if (! $data) {
+        # Do nothing - empty data
+        return;
+    }
+    elsif (ref($data) eq "HASH") {
+        return $self->_out_module_prefix_elements_hash($args);
+    }
+    elsif (ref($data) eq "ARRAY") {
+        return $self->_out_module_prefix_elements_array($args);
+    }
+    else {
+        die "Don't know how to handle module data of type " . ref($data) . "!";
+    }
 }
 
 # Output the Ad-hoc modules
@@ -621,16 +722,15 @@ sub _out_modules_elements {
     # Ad-hoc modules
     while (my ($url, $prefix) = each %{$self->_modules}) {
         next if $prefix =~ /^(dc|syn|taxo)$/;
-        while (my ($el, $value) = each %{$super_elem->{$prefix} || {}}) {
-            if ($self->_main->_is_rdf_resource($el,$url))
+        
+        $self->_out_module_prefix_elements(
             {
-                $self->_out(
-                    qq{<${prefix}:${el} rdf:resource="} . $self->_encode($value) . qq{" />\n});
+                prefix => $prefix,
+                url => $url,
+                data => $super_elem->{$prefix},
             }
-            else {
-                $self->_out_ns_tag($prefix, $el, $value);
-            }
-        }
+        );
+
     }
 
     return;

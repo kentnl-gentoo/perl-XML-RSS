@@ -17,7 +17,7 @@ use XML::RSS::Private::Output::V2_0;
 
 use vars qw($VERSION $AUTOLOAD @ISA $AUTO_ADD);
 
-$VERSION = '1.37';
+$VERSION = '1.38';
 
 $AUTO_ADD = 0;
 
@@ -685,11 +685,32 @@ sub _append_text_to_item {
     }
 
     $self->_append_text_to_elem_struct(
-        $self->{'items'}->[$self->{num_items} - 1],
+        $self->_last_item,
         $cdata,
         \&_return_item_elem,
     );
 }
+
+sub _append_to_array_elem {
+    my ($self, $category, $cdata) = @_;
+
+    if (! $self->_my_in_element($category))
+    {
+        return;
+    }
+
+    my $el = $self->_current_element;
+
+    if (ref($self->{$category}->{$el}) eq "ARRAY") {
+        $self->{$category}->{$el}->[-1] .= $cdata;
+    }
+    else {
+        $self->{$category}->{$el} .= $cdata;
+    }
+
+    return 1;
+}
+
 sub _handle_char {
     my ($self, $cdata) = (@_);
 
@@ -711,14 +732,11 @@ sub _handle_char {
         $self->_append_text_to_elem("textinput", $cdata);
     }
     # skipHours element
-    elsif ($self->_my_in_element("skipHours")) {
-        $self->{'skipHours'}->{$self->_current_element} .= $cdata;
-
+    elsif ($self->_append_to_array_elem("skipHours", $cdata)) {
+        # Do nothing - already done in the predicate.
     }
-    # skipDays element
-    elsif ($self->_my_in_element("skipDays")) {
-        $self->{'skipDays'}->{$self->_current_element} .= $cdata;
-
+    elsif ($self->_append_to_array_elem("skipDays", $cdata)) {
+        # Do nothing - already done in the predicate.
     }
     # channel element
     elsif ($self->_my_in_element("channel")) {
@@ -745,6 +763,34 @@ sub _should_be_hashref {
             && $hashref_ok_elements{$el}
         )
     );
+}
+
+sub _start_array_element {
+    my ($self, $cat, $el) = @_;
+
+    if (!$self->_my_in_element($cat)) {
+        return;
+    }
+
+    # If it's an array - append a new empty element because a new one
+    # was started.
+    if (ref($self->{$cat}->{$el}) eq "ARRAY") {
+        push @{$self->{$cat}->{$el}}, "";
+    }
+    # If it's not an array but still full (i.e: it's only the second
+    # element), then turn it into an array
+    elsif (defined($self->{$cat}->{$el}) && length($self->{$cat}->{$el})) {
+        $self->{$cat}->{$el} = [$self->{$cat}->{$el}, ""];
+    }
+    # Else - do nothing and let the function append to the new array.
+    
+    return 1;
+}
+
+sub _last_item {
+    my $self = shift;
+
+    return ($self->{'items'}->[$self->{num_items} - 1] ||= {});
 }
 
 sub _handle_start {
@@ -810,6 +856,13 @@ sub _handle_start {
 
     # beginning of item element
     }
+    # TODO : Merge skipHours and skipDays
+    elsif ($self->_start_array_element("skipHours", $el)) {
+        # Do nothing - already done in the predicate.
+    }
+    elsif ($self->_start_array_element("skipDays", $el)) {
+        # Do nothing - already done in the predicate.
+    }
     elsif ($el eq 'item') {
 
         # deal with trouble makers who use mod_content :)
@@ -828,13 +881,13 @@ sub _handle_start {
             }
         }
         # handle xml:base
-        $self->{'items'}->[$self->{num_items} - 1]->{'xml:base'} = $attribs{'base'} if exists $attribs{'base'};
+        $self->_last_item->{'xml:base'} = $attribs{'base'} if exists $attribs{'base'};
 
 
         # guid element is a permanent link unless isPermaLink attribute is set to false
     }
     elsif ($el eq 'guid') {
-        $self->{'items'}->[$self->{num_items} - 1]->{'isPermaLink'} =
+        $self->_last_item->{'isPermaLink'} =
           (exists($attribs{'isPermaLink'}) && 
               (lc($attribs{'isPermaLink'}) eq 'true')
           );
@@ -853,7 +906,7 @@ sub _handle_start {
     {
 
         #print "taxo: ", $attribs{'resource'},"\n";
-        push(@{$self->{'items'}->[$self->{num_items} - 1]->{'taxo'}}, $attribs{'resource'});
+        push(@{$self->_last_item->{'taxo'}}, $attribs{'resource'});
         $self->{'modules'}->{'http://purl.org/rss/1.0/modules/taxonomy/'} = 'taxo';
 
         # beginning of taxo li in channel element
@@ -909,23 +962,23 @@ sub _handle_start {
         # in the 'rdf_resource_fields' so this condition always evaluates
         # to false.
         # if ( $ns eq $self->{rss_namespace} ) {
-        #   $self->{'items'}->[$self->{num_items}-1]->{ $el } = $attribs{resource};
+        #   $self->_last_item->{ $el } = $attribs{resource};
         # }
         # else
         {
-            $self->{'items'}->[$self->{num_items} - 1]->{$ns}->{$el} = $attribs{resource};
+            $self->_last_item->{$ns}->{$el} = $attribs{resource};
 
             # add short cut
             #
             if (exists($self->{modules}->{$ns})) {
                 $ns = $self->{modules}->{$ns};
-                $self->{'items'}->[$self->{num_items} - 1]->{$ns}->{$el} = $attribs{resource};
+                $self->_last_item->{$ns}->{$el} = $attribs{resource};
             }
         }
     }
     elsif ($self->_should_be_hashref($el) and $self->_current_element eq 'item') {
         $attribs{'xml:base'} = delete $attribs{base} if defined $attribs{base};
-        $self->{items}->[$self->{num_items} - 1]->{$el} = \%attribs if keys %attribs;
+        $self->_last_item->{$el} = \%attribs if keys %attribs;
     }
 }
 
@@ -1579,6 +1632,20 @@ They are associated with appropriate URI-based namespaces:
   dc:   http://purl.org/dc/elements/1.1/
   taxo: http://purl.org/rss/1.0/modules/taxonomy/
 
+The Dublin Core ('dc') hash keys may be point to an array
+reference, which in turn will specify multiple such keys, and render them
+one after the other. For example:
+
+    $rss->add_item (
+        title => $title,
+        link => $link,
+        dc => { 
+            subject=> ["Jungle", "Desert", "Swamp"],
+            creator=>$creator,
+            date=>$date
+        },
+    );
+
 Dublin Core elements may occur in channel, image, item(s), and textinput
 -- albeit uncomming to find them under image and textinput.  Syndication
 elements are limited to the channel element. Taxonomy elements can occur
@@ -1607,6 +1674,15 @@ namespace by associating a prefix with a URI:
 Then proceed as usual:
 
   $rss->add_item (title=>$title, link=>$link, my=>{ rating=>$rating });
+
+You can also set the value of the module's prefix to an array reference 
+of C<<< { el => , val => } >>> hash-references, in which case duplicate 
+elements are possible:
+
+  $rss->add_item(title=>$title, link=>$link, my=> [
+    {el => "rating", value => $rating1, }
+    {el => "rating", value => $rating2, },
+  ]
 
 Non-standard namespaces are not, however, currently accessible via a simple
 prefix; access them via their namespace URL like so:
