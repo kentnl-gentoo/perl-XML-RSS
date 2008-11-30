@@ -1,15 +1,5 @@
-
 http://rt.cpan.org/Public/Dist/Display.html?Name=XML-RSS
 
-- Add a way (and an option) to parse module items with duplicate keys into
-an array reference.
-
-- Add a way (and an option) to parse multiple dc:items into an array reference:
-    - http://rt.cpan.org/Public/Bug/Display.html?id=6000
-
-- Convert an array of skipDays/day's or skipHours/hour's to multiple tags,
-when converting to text.
-    - http://rt.cpan.org/Public/Bug/Display.html?id=40978 
 
 --- before the next release-ish
 
@@ -18,7 +8,7 @@ when converting to text.
 
 --- soon-ish
 
-- Make all the date/time interfaces accept and omit DateTime dates (maybe unix
+- Make all the date/time interfaces accept and emit DateTime dates (maybe unix
   timestamps too?) instead of strings
 
 --- eventually
@@ -31,3 +21,11 @@ when converting to text.
   each version)
 
 - auto encode text?
+
+- Investigate parsing multiple dc:items into an array reference when
+inside other elements besides an <item>:
+    - http://rt.cpan.org/Public/Bug/Display.html?id=6000
+
+- Add a way (and an option) to parse module items with duplicate keys into
+an array reference.
+    - check more edge cases with other than <image> elements.

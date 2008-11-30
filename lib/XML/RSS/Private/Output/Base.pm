@@ -464,6 +464,15 @@ sub _end_channel {
     shift->_end_top_level_elem("channel");
 }
 
+sub _output_array_item_tag {
+    my ($self, $item, $tag) = @_;
+
+    if (defined($item->{$tag})) {
+        $self->_out_array_tag($tag, $item->{$tag});
+    }
+
+    return;
+}
 
 sub _output_def_item_tag {
     my ($self, $item, $tag) = @_;
@@ -541,13 +550,29 @@ sub _prefer_dc {
     return $self->{_prefer_dc};
 }
 
+sub _calc_channel_dc_field_params {
+    my ($self, $dc_key, $non_dc_key) = @_;
+
+    return
+    (
+        $self->_prefer_dc() ? "dc:$dc_key" : $non_dc_key,
+        $self->_calc_channel_dc_field($dc_key, $non_dc_key)
+    );
+}
 
 sub _out_channel_dc_field {
     my ($self, $dc_key, $non_dc_key) = @_;
 
     return $self->_out_defined_tag(
-        ($self->_prefer_dc() ? "dc:$dc_key" : $non_dc_key),
-        $self->_calc_channel_dc_field($dc_key, $non_dc_key)
+        $self->_calc_channel_dc_field_params($dc_key, $non_dc_key),
+    );
+}
+
+sub _out_channel_array_self_dc_field {
+    my ($self, $key) = @_;
+
+    $self->_out_array_tag(
+        $self->_calc_channel_dc_field_params($key, $key),
     );
 }
 
@@ -743,7 +768,7 @@ sub _out_complete_outer_tag {
 
     if (defined($value)) {
         $self->_out("<$outer>\n");
-        $self->_out_tag($inner, $value);
+        $self->_out_array_tag($inner, $value);
         $self->_end_top_level_elem($outer);
     }
 }

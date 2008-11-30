@@ -28,9 +28,9 @@ sub _get_filtered_items {
 sub _out_item_2_0_tags {
     my ($self, $item) = @_;
 
-    foreach my $tag (qw(author category comments)) {
-        $self->_output_def_item_tag($item, $tag);
-    }
+    $self->_output_def_item_tag($item, "author");
+    $self->_output_array_item_tag($item, "category");
+    $self->_output_def_item_tag($item, "comments");
 
     $self->_out_guid($item);
 
@@ -67,7 +67,7 @@ sub _output_rss_middle {
 
     $self->_out_editors;
 
-    $self->_out_channel_self_dc_field("category");
+    $self->_out_channel_array_self_dc_field("category");
     $self->_out_channel_self_dc_field("generator");
 
     # Insert cloud support here

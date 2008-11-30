@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 192;
+use Test::More tests => 199;
 
 use XML::RSS;
 use HTML::Entities qw(encode_entities);
@@ -4117,6 +4117,22 @@ EOF
         "</image>",
         'Multiple values for the same key in a module, usign an array ref'
     );
+
+    my $parsed_rss = XML::RSS->new(version => '1.0');
+    $parsed_rss->add_module(prefix => "eloq", uri => "http://eloq.tld2/Gorj/");
+    $parsed_rss->parse($rss->as_string(), { modules_as_arrays => 1, });
+
+    # TEST
+    is_deeply(
+        $parsed_rss->{'image'}->{'eloq'},
+        [
+            { 'el' => 'grow', 'val' => "There" },
+            { 'el' => 'grow', 'val' => "Position", },
+            { 'el' => 'show', 'val' => "and tell", },
+            { 'el' => 'show', 'val' => "must go on", },
+        ],
+        "modules_as_arrays parsed the namespace into an array."
+    );
 }
 
 {
@@ -4144,4 +4160,105 @@ EOF
         "</item>\n",
         "1.0 - item/multiple dc:subject's"
     );
+
+    my $parsed_rss = XML::RSS->new(version => '1.0');
+
+    $parsed_rss->parse($rss->as_string());
+
+    # TEST
+    is_deeply (
+        $parsed_rss->{'items'}->[1]->{'dc'}->{'subject'},
+        [qw(tiger elephant snake)],
+        "Properly parsed dc:subject into an array.",
+    );
+
+    # TEST
+    is(
+        $parsed_rss->{'items'}->[1]->{'dc'}->{'language'},
+        "en-GB",
+        "Properly parsed dc:language.",
+    );
 }
+
+{
+    my $rss = create_skipDays_rss({
+            version => "2.0", 
+            skipDays_params => [ day => [qw(Sunday Thursday Saturday)] ],
+        });
+    # TEST
+    contains($rss, ("<skipDays>\n"
+        . "<day>Sunday</day>\n"
+        . "<day>Thursday</day>\n"
+        . "<day>Saturday</day>\n"
+        . "</skipDays>\n"),
+        "Generate skipDays with multiple values (array)."
+    );
+}
+
+
+{
+    my $rss = create_skipHours_rss({
+            version => "2.0", 
+            skipHours_params => [ hour => [qw(5 10 16)] ],
+        });
+    # TEST
+    contains($rss, ("<skipHours>\n"
+        . "<hour>5</hour>\n"
+        . "<hour>10</hour>\n"
+        . "<hour>16</hour>\n"
+        . "</skipHours>\n"),
+        "2.0 - skipHours/hour == 0"
+    );
+}
+
+
+{
+    my $rss = create_item_with_0_rss({version => "2.0", 
+            item_params => 
+            [
+                title => "Foo&Bar",
+                link => "http://www.mytld/",
+                category => ["OneCat", "TooCat", "3Kitties"],
+            ],
+        }
+    );
+
+    # TEST
+    contains(
+        $rss,
+        ("<item>\n" .
+         "<title>Foo&#x26;Bar</title>\n" .
+         "<link>http://www.mytld/</link>\n" .
+         "<category>OneCat</category>\n" .
+         "<category>TooCat</category>\n" .
+         "<category>3Kitties</category>\n" .
+         "</item>"
+         ),
+        "2.0 - item/multiple-category's",
+    );
+}
+
+{
+    # Here we create an RSS 2.0 object and render it as the output
+    # version "3.5" in order to test that version 1.0 is the default
+    # version for output.
+    my $rss = create_channel_rss({
+            version => "2.0", 
+            channel_params =>
+            [category => [qw(OneCat TooManyCats KittensGalore)]],
+            omit_date => 1,
+        });
+    # TEST
+    contains($rss, ("<channel>\n" .
+        "<title>freshmeat.net</title>\n" .
+        "<link>http://freshmeat.net</link>\n" .
+        "<description>Linux software</description>\n" .
+        "<category>OneCat</category>\n" .
+        "<category>TooManyCats</category>\n" .
+        "<category>KittensGalore</category>\n" .
+        "\n" .
+        "<item>\n"),
+        "Multiple channel/category elements"
+    );
+}
+

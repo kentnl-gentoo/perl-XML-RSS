@@ -17,7 +17,7 @@ use XML::RSS::Private::Output::V2_0;
 
 use vars qw($VERSION $AUTOLOAD @ISA $AUTO_ADD);
 
-$VERSION = '1.38';
+$VERSION = '1.40';
 
 $AUTO_ADD = 0;
 
@@ -607,8 +607,23 @@ sub _is_rdf_resource {
     );
 }
 
+sub _get_ns_arrayity {
+    my ($self, $ns) = @_;
+
+    my $is_array =
+           $self->_parse_options()->{'modules_as_arrays'}
+        && (!exists($self->_get_default_modules()->{$ns}))
+        # RDF
+        && ($ns ne "http://www.w3.org/1999/02/22-rdf-syntax-ns#")
+        ;
+
+    my $default_ref = sub { $is_array ? [] : {} };
+
+    return ($is_array, $default_ref);
+}
+
 sub _append_text_to_elem_struct {
-    my ($self, $struct, $cdata, $mapping_sub) = @_;
+    my ($self, $struct, $cdata, $mapping_sub, $is_array_sub) = @_;
 
     my $elem = $self->_current_element;
 
@@ -616,15 +631,33 @@ sub _append_text_to_elem_struct {
 
     # If it's in the default namespace
     if ($verdict) {
-        $self->_append_struct($struct, $mapping_sub->($struct, $elem), $cdata);
+        $self->_append_struct(
+            $struct,
+            scalar($mapping_sub->($struct, $elem)),
+            scalar($is_array_sub->($struct, $elem)),
+            $cdata
+        );
     }
     else {
-        # If it's in another namespace
-        $struct->{$ns}->{$elem} .= $cdata;
+        my $prefix = $self->{modules}->{$ns};
+
+        my ($is_array, $default_ref) = $self->_get_ns_arrayity($ns);
+
+        $self->_append_struct(
+            ($struct->{$ns} ||= $default_ref->()),
+            $elem,
+            (defined($prefix) && $prefix eq "dc"),
+            $cdata
+        );
 
         # If it's in a module namespace, provide a friendlier prefix duplicate
-        if ($self->{modules}->{$ns}) {
-            $struct->{$self->{modules}->{$ns}}->{$elem} .= $cdata;
+        if ($prefix) {
+            $self->_append_struct(
+                ($struct->{$prefix} ||= $default_ref->()),
+                $elem,
+                ($prefix eq "dc"),
+                $cdata
+            );
         }
     }
 
@@ -632,17 +665,37 @@ sub _append_text_to_elem_struct {
 }
 
 sub _append_struct {
-    my ($self, $struct, $key, $cdata) = @_;
-    if (defined $struct->{$key} && ref($struct->{$key}) eq 'HASH') {
-        $struct->{$key}->{content} .= $cdata;
-    } else {
-        $struct->{$key} .= $cdata;
+    my ($self, $struct, $key, $can_be_array, $cdata) = @_;
+
+    if (ref($struct) eq 'ARRAY') {
+        $struct->[-1]->{'val'} .= $cdata;
+        return;
     }
+    elsif (defined $struct->{$key}) {
+        if (ref($struct->{$key}) eq 'HASH') {
+            $struct->{$key}->{content} .= $cdata;
+            return;
+        }
+        elsif ($can_be_array && ref($struct->{$key}) eq 'ARRAY') {
+            $struct->{$key}->[-1] .= $cdata;
+            return;
+        }
+    }
+
+    $struct->{$key} .= $cdata;
+    return;
 }
 
 sub _return_elem {
     my ($struct, $elem) = @_;
     return $elem;
+}
+
+sub _return_elem_is_array {
+    my ($struct, $elem) = @_;
+
+    # Always return false because no element should be an array.
+    return;
 }
 
 sub _append_text_to_elem {
@@ -652,6 +705,7 @@ sub _append_text_to_elem {
         $self->$ext_tag(),
         $cdata,
         \&_return_elem,
+        \&_return_elem_is_array,
     );
 }
 
@@ -677,6 +731,12 @@ sub _return_item_elem {
     }
 }
 
+sub _return_item_elem_is_array {
+    my ($item, $elem) = @_;
+
+    return ($elem eq "category");
+}
+
 sub _append_text_to_item {
     my ($self, $cdata) = @_;
 
@@ -688,6 +748,7 @@ sub _append_text_to_item {
         $self->_last_item,
         $cdata,
         \&_return_item_elem,
+        \&_return_item_elem_is_array
     );
 }
 
@@ -740,9 +801,16 @@ sub _handle_char {
     }
     # channel element
     elsif ($self->_my_in_element("channel")) {
-        return if $self->_within_topics;
+        if ($self->_within_topics() || $self->_my_in_element("items")) {
+            return;
+        }
 
-        $self->_append_text_to_elem("channel", $cdata);
+        if ($self->_current_element eq "category") {
+            $self->_append_to_array_elem("channel", $cdata);
+        }
+        else {
+            $self->_append_text_to_elem("channel", $cdata);
+        }
     }
 }
 
@@ -765,6 +833,45 @@ sub _should_be_hashref {
     );
 }
 
+sub _start_array_element_in_struct {
+    my ($self, $input_struct, $el, $prefix) = @_;
+
+    my ($el_ns, $el_verdict) = $self->_get_elem_namespace($el);
+
+    my ($is_array, $default_ref) = $self->_get_ns_arrayity($el_ns);
+
+    my @structs = (!$el_verdict)
+        ? (
+            (exists($self->{modules}->{$el_ns})
+                ? ($input_struct->{$self->{modules}->{$el_ns}} ||= $default_ref->())
+                : ()
+            ),
+            ($input_struct->{$el_ns} ||= $default_ref->()),
+        )
+        : ($input_struct)
+        ;
+
+    foreach my $struct (@structs)
+    {
+        if (ref($struct) eq 'ARRAY') {
+            push @$struct, { el => $el, val => "", };
+        }
+        # If it's an array - append a new empty element because a new one
+        # was started.
+        elsif (ref($struct->{$el}) eq "ARRAY") {
+            push @{$struct->{$el}}, "";
+        }
+        # If it's not an array but still full (i.e: it's only the second
+        # element), then turn it into an array
+        elsif (defined($struct->{$el}) && length($struct->{$el})) {
+            $struct->{$el} = [$struct->{$el}, ""];
+        }
+        # Else - do nothing and let the function append to the new value
+        #
+    }
+    return 1;
+}
+
 sub _start_array_element {
     my ($self, $cat, $el) = @_;
 
@@ -772,18 +879,7 @@ sub _start_array_element {
         return;
     }
 
-    # If it's an array - append a new empty element because a new one
-    # was started.
-    if (ref($self->{$cat}->{$el}) eq "ARRAY") {
-        push @{$self->{$cat}->{$el}}, "";
-    }
-    # If it's not an array but still full (i.e: it's only the second
-    # element), then turn it into an array
-    elsif (defined($self->{$cat}->{$el}) && length($self->{$cat}->{$el})) {
-        $self->{$cat}->{$el} = [$self->{$cat}->{$el}, ""];
-    }
-    # Else - do nothing and let the function append to the new array.
-    
+    $self->_start_array_element_in_struct($self->{$cat}, $el);
     return 1;
 }
 
@@ -799,6 +895,8 @@ sub _handle_start {
     my %attribs = @_;
 
     my $parser = $self->_parser;
+
+    my ($el_ns, $el_verdict) = $self->_get_elem_namespace($el);
     
     # beginning of RSS 0.91
     if ($el eq 'rss') {
@@ -856,7 +954,6 @@ sub _handle_start {
 
     # beginning of item element
     }
-    # TODO : Merge skipHours and skipDays
     elsif ($self->_start_array_element("skipHours", $el)) {
         # Do nothing - already done in the predicate.
     }
@@ -894,6 +991,17 @@ sub _handle_start {
 
         # beginning of taxo li element in item element
         #'http://purl.org/rss/1.0/modules/taxonomy/' => 'taxo'
+    }
+    elsif (
+           $self->_current_element eq "item"
+        && (($el eq "category") || 
+            (
+                   exists($self->{modules}->{$el_ns})
+                && ($self->{modules}->{$el_ns} eq "dc")
+            )
+        )
+    ) {
+        $self->_start_array_element_in_struct($self->_last_item, $el);
     }
     elsif (
         $parser->within_element(
@@ -979,6 +1087,14 @@ sub _handle_start {
     elsif ($self->_should_be_hashref($el) and $self->_current_element eq 'item') {
         $attribs{'xml:base'} = delete $attribs{base} if defined $attribs{base};
         $self->_last_item->{$el} = \%attribs if keys %attribs;
+    }
+    elsif ($self->_start_array_element("image", $el)) {
+        # Do nothing - already done in the predicate.
+    }    
+    elsif (($el eq "category") && 
+        (!$parser->within_element("item")) &&
+        $self->_start_array_element("channel", $el)) {
+        # Do nothing - already done in the predicate.
     }
 }
 
@@ -1549,6 +1665,13 @@ instead of strings (with a B<content> key containing their content , B<if>
 they have XML attributes. Without this key, the attributes will be ignored
 and there will only be a string. Thus, specifying this option may break
 compatibility.
+
+=item * modules_as_arrays
+
+This option when true, will parse the modules key-value-pairs as an arrayref of 
+C<<< { el => $key_name, value => $value, } >>> hash-refs to gracefully
+handle duplicate items (see below). It will not affect the known modules such 
+as dc ("Dublin Core").
 
 =back
 
