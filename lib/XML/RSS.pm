@@ -17,7 +17,7 @@ use XML::RSS::Private::Output::V2_0;
 
 use vars qw($VERSION $AUTOLOAD @ISA $AUTO_ADD);
 
-$VERSION = '1.40';
+$VERSION = '1.41';
 
 $AUTO_ADD = 0;
 
@@ -25,9 +25,9 @@ sub _get_ok_fields {
     return {
         "0.9" => {
             channel => {
-                title       => '',
-                description => '',
-                link        => '',
+                title       => undef,
+                description => undef,
+                link        => undef,
             },
             image => {
                 title => undef,
@@ -43,13 +43,13 @@ sub _get_ok_fields {
         },
         "0.91" => {
             channel => {
-                title          => '',
+                title          => undef,
                 copyright      => undef,
-                description    => '',
+                description    => undef,
                 docs           => undef,
                 language       => undef,
                 lastBuildDate  => undef,
-                'link'         => '',
+                'link'         => undef,
                 managingEditor => undef,
                 pubDate        => undef,
                 rating         => undef,
@@ -74,9 +74,9 @@ sub _get_ok_fields {
         },
         "2.0" => {
             channel => {
-                title          => '',
-                'link'         => '',
-                description    => '',
+                title          => undef,
+                'link'         => undef,
+                description    => undef,
                 language       => undef,
                 copyright      => undef,
                 managingEditor => undef,
@@ -112,9 +112,9 @@ sub _get_ok_fields {
         },
         'default' => {
             channel => {
-                title       => '',
-                description => '',
-                link        => '',
+                title       => undef,
+                description => undef,
+                link        => undef,
             },
             image => {
                 title => undef,
@@ -534,6 +534,28 @@ sub _get_output_version {
     return ($self->{output} =~ /\d/) ? $self->{output} : $self->{version};
 }
 
+# This is done to preserve backwards compatibility with older versions
+# of XML-RSS that had the channel/{link,description,title} as the empty
+# string by default.
+sub _output_env {
+    my $self = shift;
+    my $callback = shift;
+
+    local $self->{channel}->{'link'} = $self->{channel}->{'link'};
+    local $self->{channel}->{'description'} = $self->{channel}->{'description'};
+    local $self->{channel}->{'title'} = $self->{channel}->{'title'};
+
+    foreach my $field (qw(link description title))
+    {
+        if (!defined($self->{channel}->{$field}))
+        {
+            $self->{channel}->{$field} = '';
+        }
+    }
+
+    return $callback->();
+}
+
 sub as_string {
     my $self = shift;
 
@@ -541,7 +563,9 @@ sub as_string {
 
     my $output_method = $self->_get_output_method($version);
 
-    return $self->$output_method();
+    return $self->_output_env(
+        sub { return $self->$output_method(); }
+    );
 }
 
 # Checks if inside a possibly namespaced element
@@ -898,6 +922,14 @@ sub _handle_start {
 
     my ($el_ns, $el_verdict) = $self->_get_elem_namespace($el);
     
+    if ($el eq "image")
+    {
+        if (exists($attribs{'resource'}))
+        {
+            $self->image("rdf:resource", $attribs{'resource'});
+        }
+    }
+
     # beginning of RSS 0.91
     if ($el eq 'rss') {
         if (exists($attribs{version})) {
@@ -1058,7 +1090,6 @@ sub _handle_start {
             }
         }
     }
-
     # beginning of an item element that stores its info in rdf:resource
     elsif ( $parser->namespace($el)
         && $self->_is_rdf_resource($el)
@@ -1091,10 +1122,21 @@ sub _handle_start {
     elsif ($self->_start_array_element("image", $el)) {
         # Do nothing - already done in the predicate.
     }    
-    elsif (($el eq "category") && 
+    elsif (($el eq "category") &&
         (!$parser->within_element("item")) &&
         $self->_start_array_element("channel", $el)) {
         # Do nothing - already done in the predicate.
+    }
+    elsif (($self->_current_element eq 'channel') &&
+           ($el_verdict))
+           {
+        # Make sure an opening tag signifies that the element has been
+        # encountered.
+        if (   exists($self->{'channel'}->{$el}) 
+            && (!defined($self->{'channel'}->{$el})))
+        {
+            $self->{'channel'}->{$el} = "";
+        }
     }
 }
 
