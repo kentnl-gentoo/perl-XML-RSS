@@ -5,9 +5,6 @@ use warnings;
 
 use Carp;
 use XML::Parser;
-use HTML::Entities qw(encode_entities_numeric encode_entities);
-use DateTime::Format::Mail;
-use DateTime::Format::W3CDTF;
 
 use XML::RSS::Private::Output::Base;
 use XML::RSS::Private::Output::V0_9;
@@ -17,7 +14,7 @@ use XML::RSS::Private::Output::V2_0;
 
 use vars qw($VERSION $AUTOLOAD @ISA $AUTO_ADD);
 
-$VERSION = '1.44';
+$VERSION = '1.45';
 
 $AUTO_ADD = 0;
 
@@ -386,8 +383,8 @@ sub add_module {
     my $self = shift;
     my $hash = {@_};
 
-    $hash->{prefix} =~ /^[a-z_][a-z0-9.\-_]*$/
-      or croak "a namespace prefix should look like [a-z_][a-z0-9.\\-_]*";
+    $hash->{prefix} =~ /^[a-z_][a-z0-9.\-_]*$/i
+      or croak "a namespace prefix should look like [A-Za-z_][A-Za-z0-9.\\-_]*";
 
     $hash->{uri}
       or croak "a URI must be provided in a namespace declaration";
@@ -1685,6 +1682,11 @@ Netscape Netcenter channels, however, many Web sites have since
 adopted it as a simple syndication format. With the advent of RSS 1.0,
 users are now able to syndication many different kinds of content
 including news headlines, threaded measages, products catalogs, etc.
+
+B<Note:> In order to parse and generate dates (such as C<pubDate>
+and C<dc:date>) it is recommended to use L<DateTime::Format::Mail> and 
+L<DateTime::Format::W3CDTF> , which is what L<XML::RSS> uses internally
+and requires.
 
 =head1 METHODS
 
