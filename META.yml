@@ -1,6 +1,6 @@
 ---
 name: XML-RSS
-version: 1.45
+version: 1.46
 author:
   - 'Shlomi Fish <shlomif@cpan.org>'
 abstract: creates and updates RSS files
@@ -18,13 +18,13 @@ requires:
   DateTime::Format::W3CDTF: 0
   HTML::Entities: 0
   XML::Parser: 2.23
-  perl: 5.006
+  perl: 5.008
 configure_requires:
-  Module::Build: 0.34
+  Module::Build: 0.35
 provides:
   XML::RSS:
     file: lib/XML/RSS.pm
-    version: 1.45
+    version: 1.46
   XML::RSS::Private::Output::Base:
     file: lib/XML/RSS/Private/Output/Base.pm
   XML::RSS::Private::Output::Roles::ImageDims:
@@ -39,7 +39,7 @@ provides:
     file: lib/XML/RSS/Private/Output/V1_0.pm
   XML::RSS::Private::Output::V2_0:
     file: lib/XML/RSS/Private/Output/V2_0.pm
-generated_by: Module::Build version 0.34
+generated_by: Module::Build version 0.35
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4

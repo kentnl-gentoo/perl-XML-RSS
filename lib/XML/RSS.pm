@@ -14,7 +14,9 @@ use XML::RSS::Private::Output::V2_0;
 
 use vars qw($VERSION $AUTOLOAD @ISA $AUTO_ADD);
 
-$VERSION = '1.45';
+require 5.008;
+
+$VERSION = '1.46';
 
 $AUTO_ADD = 0;
 
@@ -1337,20 +1339,10 @@ sub parsefile {
     return $self->_generic_parse("parsefile", $file_to_parse, $options);
 }
 
-# Check if Perl supports the :encoding layer in File I/O.
-sub _perl_supports_encoding {
-    my $self = shift;
-
-    return $] > 5.007;
-}
-
 sub _get_save_output_mode {
     my $self = shift;
 
-    return $self->_perl_supports_encoding()
-        ? (">:encoding(" . $self->_encoding() . ")")
-        : ">"
-        ;
+    return (">:encoding(" . $self->_encoding() . ")");
 }
 
 sub save {
@@ -1496,7 +1488,7 @@ XML::RSS - creates and updates RSS files
 
  # create an RSS 1.0 file (http://purl.org/rss/1.0/)
  use XML::RSS;
- my $rss = new XML::RSS (version => '1.0');
+ my $rss = XML::RSS->new(version => '1.0');
  $rss->channel(
    title        => "freshmeat.net",
    link         => "http://freshmeat.net",
@@ -1568,7 +1560,7 @@ XML::RSS - creates and updates RSS files
 
  # create an RSS 2.0 file
  use XML::RSS;
- my $rss = new XML::RSS (version => '2.0');
+ my $rss = XML::RSS->new (version => '2.0');
  $rss->channel(title          => 'freshmeat.net',
                link           => 'http://freshmeat.net',
                language       => 'en',
@@ -1607,7 +1599,7 @@ XML::RSS - creates and updates RSS files
 
  # create an RSS 0.9 file
  use XML::RSS;
- my $rss = new XML::RSS (version => '0.9');
+ my $rss = XML::RSS->new( version => '0.9' );
  $rss->channel(title => "freshmeat.net",
                link  => "http://freshmeat.net",
                description => "the one-stop-shop for all your Linux software needs",
@@ -1636,7 +1628,7 @@ XML::RSS - creates and updates RSS files
 
  # insert an item into an RSS file and removes the oldest ones if
  # there are already 15 items or more
- my $rss = new XML::RSS;
+ my $rss = XML::RSS->new;
  $rss->parsefile("fm.rdf");
 
  while (@{$rss->{'items'}} >= 15)
@@ -1692,8 +1684,7 @@ and requires.
 
 =over 4
 
-=item new XML::RSS (version=>$version, encoding=>$encoding,
-output=>$output, stylesheet=>$stylesheet_url, 'xml:base'=>$base)
+=item XML::RSS->new(version=>$version, encoding=>$encoding, output=>$output, stylesheet=>$stylesheet_url, 'xml:base'=>$base)
 
 Constructor for XML::RSS. It returns a reference to an XML::RSS object.
 You may also pass the RSS version and the XML encoding to use. The default
@@ -2055,7 +2046,7 @@ modify it under the same terms as Perl itself.
  rjp@browser.org
  Kellan Elliott-McCrea <kellan@protest.net>
  Rafe Colburn <rafe@rafe.us>
- Adam Trickett <adam.trickett@btinternet.com>
+ Adam Trickett <atrickett@cpan.org>
  Aaron Straup Cope <asc@vineyard.net>
  Ian Davis <iand@internetalchemy.org>
  rayg@varchars.com

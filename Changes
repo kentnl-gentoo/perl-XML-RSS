@@ -1,5 +1,16 @@
 Revision history for Perl module XML::RSS
 
+1.46 - October 8, 2009
+    - Updated the E-mail address of Adam Trickett.
+    - Removed the perl-5.6.x-specific workarounds and made perl-5.8.x as
+    a requirement. This was done in order to:
+        - avoid a workaround that also caused an incomplete test coverage.
+        - avoid various test failures due to a problem with XML-Parser
+        on 5.6.x .
+        - encourage people using ancient versions of perl in production.
+    - Convert all occurences of "new XML::RSS" to "XML::RSS->new()" everywhere.
+        - a best practice.
+
 1.45 - August 5, 2009
     - Removed some unused module requirements statements from lib/**.pm.
     - Added a note about date parsing/generation (thanks to an email
