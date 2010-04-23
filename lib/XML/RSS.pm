@@ -16,7 +16,7 @@ use vars qw($VERSION $AUTOLOAD @ISA $AUTO_ADD);
 
 require 5.008;
 
-$VERSION = '1.47';
+$VERSION = '1.48';
 
 $AUTO_ADD = 0;
 
@@ -1731,8 +1731,17 @@ The default B<mode>
 is append, which adds the item to the end of the list. To insert an item, set the mode
 to B<insert>.
 
-The items are stored in the array @{$obj->{'items'}} where
+The items are stored in the array C<< @{$obj->{'items'}} >> where
 B<$obj> is a reference to an XML::RSS object.
+
+One can specify a category by using the B<'category'> key. B<'category'> can
+point to an array reference of categories:
+
+    $rss->add_item(
+        title => "Foo&Bar",
+        link => "http://www.my.tld/",
+        category => ["OneCat", "TooCat", "3Kitties"],
+    );
 
 =item as_string;
 
@@ -1768,7 +1777,7 @@ is for B<channel()>.
 
 Parses an RDF Site Summary which is passed into B<parse()> as the first 
 parameter. Returns the instance of the object so one can say 
-C<<$rss->parse($string)->other_method()>>.
+C<< $rss->parse($string)->other_method() >>.
 
 See the add_module() method for instructions on automatically adding
 modules as a string is parsed.
