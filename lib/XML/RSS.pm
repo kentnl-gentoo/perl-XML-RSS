@@ -16,7 +16,7 @@ use vars qw($VERSION $AUTOLOAD @ISA $AUTO_ADD);
 
 require 5.008;
 
-$VERSION = '1.48';
+$VERSION = '1.49';
 
 $AUTO_ADD = 0;
 
@@ -992,6 +992,11 @@ sub _handle_start {
     }
     elsif ($self->_start_array_element("skipDays", $el)) {
         # Do nothing - already done in the predicate.
+    }
+    elsif ($el eq 'cloud') {
+        if (keys %attribs) {
+            $self->{channel}{cloud} = \%attribs;
+        }
     }
     elsif ($el eq 'item') {
 

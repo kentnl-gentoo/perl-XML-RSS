@@ -7,7 +7,7 @@ build_requires:
   Test::More: 0
 configure_requires:
   Module::Build: 0.36
-generated_by: 'Module::Build version 0.3607'
+generated_by: 'Module::Build version 0.3617'
 keywords:
   - feed
   - feeds
@@ -28,7 +28,7 @@ name: XML-RSS
 provides:
   XML::RSS:
     file: lib/XML/RSS.pm
-    version: 1.48
+    version: 1.49
   XML::RSS::Private::Output::Base:
     file: lib/XML/RSS/Private/Output/Base.pm
   XML::RSS::Private::Output::Roles::ImageDims:
@@ -54,4 +54,4 @@ resources:
   homepage: http://perl-rss.sourceforge.net/
   license: http://dev.perl.org/licenses/
   repository: https://svn.perl.org/modules/XML-RSS/trunk
-version: 1.48
+version: 1.49
