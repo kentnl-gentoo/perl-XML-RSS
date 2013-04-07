@@ -8,7 +8,7 @@ use Test::Run::Builder::Manifest;
 
 my $build = Test::Run::Builder::Manifest->new(
     'module_name' => "XML::RSS",
-    'requires' => 
+    'requires' =>
     {
         'DateTime' => 0,
         'DateTime::Format::Mail' => 0,
@@ -23,7 +23,7 @@ my $build = Test::Run::Builder::Manifest->new(
         'Test::More' => 0,
     },
     configure_requires =>
-    { 
+    {
         'Module::Build' => '0.36',
     },
     'license' => "perl",
@@ -32,7 +32,7 @@ my $build = Test::Run::Builder::Manifest->new(
     {
         resources =>
         {
-            repository => "https://svn.perl.org/modules/XML-RSS/trunk",
+            repository => "https://github.com/shlomif/perl-XML-RSS",
             homepage => "http://perl-rss.sourceforge.net/",
         },
         keywords =>
@@ -49,6 +49,6 @@ my $build = Test::Run::Builder::Manifest->new(
             "web-feeds",
             "xml",
         ],
-    },    
+    },
 );
 $build->create_build_script;
