@@ -16,7 +16,7 @@ use vars qw($VERSION $AUTOLOAD @ISA $AUTO_ADD);
 
 require 5.008;
 
-$VERSION = '1.50';
+$VERSION = '1.51';
 
 $AUTO_ADD = 0;
 
@@ -1648,7 +1648,7 @@ XML::RSS - creates and updates RSS files
 
  while (@{$rss->{'items'}} >= 15)
  {
-     pop (@{ $rss->{'items'} });
+     shift (@{ $rss->{'items'} });
  }
 
  $rss->add_item(title => "MpegTV Player (mtv) 1.0.9.7",
