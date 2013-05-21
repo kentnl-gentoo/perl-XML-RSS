@@ -4,7 +4,7 @@
       "Shlomi Fish <shlomif@cpan.org>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Module::Build version 0.4003, CPAN::Meta::Converter version 2.120921",
+   "generated_by" : "Module::Build version 0.3901, CPAN::Meta::Converter version 2.120921",
    "keywords" : [
       "feed",
       "feeds",
@@ -52,7 +52,7 @@
    "provides" : {
       "XML::RSS" : {
          "file" : "lib/XML/RSS.pm",
-         "version" : "1.51"
+         "version" : "1.52"
       },
       "XML::RSS::Private::Output::Base" : {
          "file" : "lib/XML/RSS/Private/Output/Base.pm",
@@ -93,5 +93,5 @@
          "url" : "https://github.com/shlomif/perl-XML-RSS"
       }
    },
-   "version" : "1.51"
+   "version" : "1.52"
 }
