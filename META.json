@@ -4,7 +4,7 @@
       "Shlomi Fish <shlomif@cpan.org>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Module::Build version 0.3901, CPAN::Meta::Converter version 2.120921",
+   "generated_by" : "Module::Build version 0.4005, CPAN::Meta::Converter version 2.131490",
    "keywords" : [
       "feed",
       "feeds",
@@ -52,35 +52,28 @@
    "provides" : {
       "XML::RSS" : {
          "file" : "lib/XML/RSS.pm",
-         "version" : "1.52"
+         "version" : "1.53"
       },
       "XML::RSS::Private::Output::Base" : {
-         "file" : "lib/XML/RSS/Private/Output/Base.pm",
-         "version" : 0
+         "file" : "lib/XML/RSS/Private/Output/Base.pm"
       },
       "XML::RSS::Private::Output::Roles::ImageDims" : {
-         "file" : "lib/XML/RSS/Private/Output/Roles/ImageDims.pm",
-         "version" : 0
+         "file" : "lib/XML/RSS/Private/Output/Roles/ImageDims.pm"
       },
       "XML::RSS::Private::Output::Roles::ModulesElems" : {
-         "file" : "lib/XML/RSS/Private/Output/Roles/ModulesElems.pm",
-         "version" : 0
+         "file" : "lib/XML/RSS/Private/Output/Roles/ModulesElems.pm"
       },
       "XML::RSS::Private::Output::V0_9" : {
-         "file" : "lib/XML/RSS/Private/Output/V0_9.pm",
-         "version" : 0
+         "file" : "lib/XML/RSS/Private/Output/V0_9.pm"
       },
       "XML::RSS::Private::Output::V0_91" : {
-         "file" : "lib/XML/RSS/Private/Output/V0_91.pm",
-         "version" : 0
+         "file" : "lib/XML/RSS/Private/Output/V0_91.pm"
       },
       "XML::RSS::Private::Output::V1_0" : {
-         "file" : "lib/XML/RSS/Private/Output/V1_0.pm",
-         "version" : 0
+         "file" : "lib/XML/RSS/Private/Output/V1_0.pm"
       },
       "XML::RSS::Private::Output::V2_0" : {
-         "file" : "lib/XML/RSS/Private/Output/V2_0.pm",
-         "version" : 0
+         "file" : "lib/XML/RSS/Private/Output/V2_0.pm"
       }
    },
    "release_status" : "stable",
@@ -93,5 +86,5 @@
          "url" : "https://github.com/shlomif/perl-XML-RSS"
       }
    },
-   "version" : "1.52"
+   "version" : "1.53"
 }
