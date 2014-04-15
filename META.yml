@@ -3,12 +3,12 @@ abstract: 'creates and updates RSS files'
 author:
   - 'Shlomi Fish <shlomif@cpan.org>'
 build_requires:
-  Test::Manifest: 0.9
-  Test::More: 0
+  Test::Manifest: '0.9'
+  Test::More: '0'
 configure_requires:
-  Module::Build: 0.36
+  Module::Build: '0.36'
 dynamic_config: 1
-generated_by: 'Module::Build version 0.4005, CPAN::Meta::Converter version 2.131490'
+generated_by: 'Module::Build version 0.4205, CPAN::Meta::Converter version 2.140640'
 keywords:
   - feed
   - feeds
@@ -24,12 +24,12 @@ keywords:
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
-  version: 1.4
+  version: '1.4'
 name: XML-RSS
 provides:
   XML::RSS:
     file: lib/XML/RSS.pm
-    version: 1.54
+    version: '1.55'
   XML::RSS::Private::Output::Base:
     file: lib/XML/RSS/Private/Output/Base.pm
   XML::RSS::Private::Output::Roles::ImageDims:
@@ -45,14 +45,14 @@ provides:
   XML::RSS::Private::Output::V2_0:
     file: lib/XML/RSS/Private/Output/V2_0.pm
 requires:
-  DateTime: 0
-  DateTime::Format::Mail: 0
-  DateTime::Format::W3CDTF: 0
-  HTML::Entities: 0
-  XML::Parser: 2.23
-  perl: 5.008
+  DateTime: '0'
+  DateTime::Format::Mail: '0'
+  DateTime::Format::W3CDTF: '0'
+  HTML::Entities: '0'
+  XML::Parser: '2.23'
+  perl: '5.008'
 resources:
   homepage: http://perl-rss.sourceforge.net/
   license: http://dev.perl.org/licenses/
   repository: https://github.com/shlomif/perl-XML-RSS
-version: 1.54
+version: '1.55'
