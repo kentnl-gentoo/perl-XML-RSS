@@ -8,7 +8,7 @@ build_requires:
 configure_requires:
   Module::Build: '0.36'
 dynamic_config: 1
-generated_by: 'Module::Build version 0.4205, CPAN::Meta::Converter version 2.140640'
+generated_by: 'Module::Build version 0.421, CPAN::Meta::Converter version 2.142060'
 keywords:
   - feed
   - feeds
@@ -29,7 +29,7 @@ name: XML-RSS
 provides:
   XML::RSS:
     file: lib/XML/RSS.pm
-    version: '1.55'
+    version: '1.56'
   XML::RSS::Private::Output::Base:
     file: lib/XML/RSS/Private/Output/Base.pm
   XML::RSS::Private::Output::Roles::ImageDims:
@@ -55,4 +55,4 @@ resources:
   homepage: http://perl-rss.sourceforge.net/
   license: http://dev.perl.org/licenses/
   repository: https://github.com/shlomif/perl-XML-RSS
-version: '1.55'
+version: '1.56'

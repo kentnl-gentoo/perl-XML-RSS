@@ -16,7 +16,7 @@ use vars qw($VERSION $AUTOLOAD @ISA $AUTO_ADD);
 
 require 5.008;
 
-$VERSION = '1.55';
+$VERSION = '1.56';
 
 $AUTO_ADD = 0;
 
@@ -1266,6 +1266,9 @@ sub _get_parser {
                 $self->_handle_end(@_);
                 # Detach the parser to avoid reference loops.
                 $self->_parser(undef);
+            },
+            ExternEnt => sub {
+                return '';
             },
         }
     );
