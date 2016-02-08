@@ -16,7 +16,7 @@ use vars qw($VERSION $AUTOLOAD @ISA $AUTO_ADD);
 
 require 5.008;
 
-$VERSION = '1.57';
+$VERSION = '1.58';
 
 $AUTO_ADD = 0;
 
@@ -1023,9 +1023,7 @@ sub _handle_start {
     }
     elsif ($el eq 'guid') {
         $self->_last_item->{'isPermaLink'} =
-          (exists($attribs{'isPermaLink'}) &&
-              (lc($attribs{'isPermaLink'}) eq 'true')
-          );
+          ( (!exists($attribs{'isPermaLink'})) || (lc($attribs{'isPermaLink'}) ne 'false') );
 
         # beginning of taxo li element in item element
         #'http://purl.org/rss/1.0/modules/taxonomy/' => 'taxo'

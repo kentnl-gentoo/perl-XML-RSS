@@ -29,7 +29,7 @@ name: XML-RSS
 provides:
   XML::RSS:
     file: lib/XML/RSS.pm
-    version: '1.57'
+    version: '1.58'
   XML::RSS::Private::Output::Base:
     file: lib/XML/RSS/Private/Output/Base.pm
   XML::RSS::Private::Output::Roles::ImageDims:
@@ -55,5 +55,5 @@ resources:
   homepage: http://perl-rss.sourceforge.net/
   license: http://dev.perl.org/licenses/
   repository: https://github.com/shlomif/perl-XML-RSS
-version: '1.57'
-x_serialization_backend: 'CPAN::Meta::YAML version 0.016'
+version: '1.58'
+x_serialization_backend: 'CPAN::Meta::YAML version 0.012'

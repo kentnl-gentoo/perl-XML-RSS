@@ -52,7 +52,7 @@
    "provides" : {
       "XML::RSS" : {
          "file" : "lib/XML/RSS.pm",
-         "version" : "1.57"
+         "version" : "1.58"
       },
       "XML::RSS::Private::Output::Base" : {
          "file" : "lib/XML/RSS/Private/Output/Base.pm"
@@ -86,6 +86,6 @@
          "url" : "https://github.com/shlomif/perl-XML-RSS"
       }
    },
-   "version" : "1.57",
+   "version" : "1.58",
    "x_serialization_backend" : "JSON::PP version 2.27300"
 }
